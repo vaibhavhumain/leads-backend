@@ -1,0 +1,40 @@
+const express = require('express');
+const {
+  createLead,
+  forwardLead,
+  addFollowUp,
+  getMyLeads,
+  getLeads,
+  getLeadById,
+  updateLeadStatus,
+  getForwardedLeadsToMe,
+} = require('../controllers/leadController');
+const { protect } = require('../middleware/authMiddleware');
+
+const router = express.Router();
+
+// ✅ Create a new lead (createdBy set from token)
+router.post('/create', protect, createLead);
+
+// ✅ Forward a lead to another user
+router.post('/forward', protect, forwardLead);
+
+// ✅ Add a follow-up to a lead
+router.post('/followup', protect, addFollowUp);
+
+// ✅ Get all leads (Admin or team-based access)
+router.get('/', protect, getLeads);
+
+// ✅ Get leads created by the logged-in user
+router.get('/my-leads', protect, getMyLeads);
+
+// ✅ Get leads forwarded to the logged-in user
+router.get('/forwarded-to-me', protect, getForwardedLeadsToMe);
+
+// ✅ Update lead status
+router.put('/:id/status', protect, updateLeadStatus);
+
+// ✅ Get a single lead by its ID
+router.get('/:id', protect, getLeadById);
+
+module.exports = router;
