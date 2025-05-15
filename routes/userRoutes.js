@@ -10,13 +10,7 @@ const {
 
 const { protect } = require('../middleware/authMiddleware');
 
-// ✅ Add this route
-router.get('/profile/me', protect, (req, res) => {
-  console.log('User profile request received');
-  getMyProfile(req, res);
-});
-
-// Other routes
+router.get('/me', protect, getMyProfile);
 router.get('/', protect, getAllUsers);
 router.get('/:id', protect, getUserById);
 router.put('/update-picture', protect, updateProfilePicture);

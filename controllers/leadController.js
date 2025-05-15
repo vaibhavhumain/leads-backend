@@ -1,6 +1,19 @@
 const Lead = require('../models/Lead');
 const User = require('../models/User');
-// Create a new lead
+const nodemailer = require('nodemailer');
+
+require('dotenv').config();
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_PASS,
+  },
+});
+
+
+// Create a new led
 exports.createLead = async (req, res) => {
   const { leadDetails } = req.body;
 
@@ -33,9 +46,8 @@ exports.createLead = async (req, res) => {
 // Forward lead to another user
 exports.forwardLead = async (req, res) => {
   const { leadId, userId } = req.body;
+  const loggedInUser = req.user;
 
-  const loggedInUser = req.user;  
-  
   if (!loggedInUser || !loggedInUser.email) {
     return res.status(401).json({ message: 'User not logged in or email not found' });
   }
@@ -45,17 +57,41 @@ exports.forwardLead = async (req, res) => {
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
 
     const receiver = await User.findById(userId);
-    if (!receiver || !receiver.email) return res.status(404).json({ message: 'Receiver user not found or email not available' });
+    if (!receiver || !receiver.email)
+      return res.status(404).json({ message: 'Receiver user not found or email not available' });
 
+    // Update lead
     lead.forwardedTo = {
       user: userId,
-      forwardedAt: new Date()
+      forwardedAt: new Date(),
     };
     lead.status = 'In Progress';
     lead.previousDetails = null;
-    await lead.save();  
+    await lead.save();
 
-    res.status(200).json({ message: 'Lead forwarded successfully', lead });
+    // Send Email using Gmail SMTP
+    const mailOptions = {
+      from: 'akash@gobindcoach.com',
+      to: receiver.email,
+      subject: `New Lead Forwarded by ${loggedInUser.name}`,
+      text: `
+Hello ${receiver.name},
+
+${loggedInUser.name} has forwarded a lead to you.
+
+Lead Details:
+- Name: ${lead.leadDetails?.name || 'N/A'}
+- Company: ${lead.leadDetails?.company || 'N/A'}
+- Phone: ${lead.leadDetails?.phone || 'N/A'}
+
+Please check your dashboard for full details.
+      `.trim()
+    };
+
+   const info = await transporter.sendMail(mailOptions);
+   console.log('✅ Email sent:', info.response);
+
+    res.status(200).json({ message: 'Lead forwarded and email sent successfully', lead });
 
   } catch (error) {
     console.error('Error forwarding lead:', error);
