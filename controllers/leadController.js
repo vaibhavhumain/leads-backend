@@ -164,7 +164,6 @@ exports.getLeadById = async (req, res) => {
 };
 
 // Update lead status
-// Update lead status
 exports.updateLeadStatus = async (req, res) => {
   const { id } = req.params;
   const { status, remarks, date } = req.body;
@@ -182,19 +181,9 @@ exports.updateLeadStatus = async (req, res) => {
     lead.status = status;
     if (remarks) lead.remarks = remarks;
     if (date) lead.date = date;
-
-    // ✅ If the forwarded user is updating the status, unfreeze for the creator
     if (lead.forwardedTo?.user?.toString() === req.user._id.toString()) {
       lead.isFrozen = false;
     }
-
-    // ✅ Check if this request is coming from the Profile Page
-    if (req.query.removeFromForwarded === 'true') {
-      if (lead.forwardedTo?.user?.toString() === req.user._id.toString()) {
-        lead.forwardedTo = null; // Remove user from forwardedTo field
-      }
-    }
-
     await lead.save();
 
     res.status(200).json({ message: 'Lead status updated successfully', lead });
