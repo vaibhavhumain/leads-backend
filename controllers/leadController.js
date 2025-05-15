@@ -116,22 +116,36 @@ exports.addFollowUp = async (req, res) => {
 
 
 // Get all leads (for Admin)
+
 exports.getLeads = async (req, res) => {
   try {
-    const leads = await Lead.find()
-      .populate('createdBy', 'name email')
-      .populate('forwardedTo.user', 'name email');
+    const userId = req.user._id;
+    const role = req.user.role;
 
-    if (!leads.length) {
-      return res.status(404).json({ message: 'No leads found' });
+    let leads;
+
+    if (role === 'admin') {
+      leads = await Lead.find()
+        .populate('createdBy', 'name email')
+        .populate('forwardedTo.user', 'name email');
+    } else if (role === 'bd') {
+      leads = await Lead.find({ createdBy: userId })
+        .populate('createdBy', 'name email')
+        .populate('forwardedTo.user', 'name email');
+    } else if (role === 'sales') {
+      leads = await Lead.find({ 'forwardedTo.user': userId })
+        .populate('createdBy', 'name email')
+        .populate('forwardedTo.user', 'name email');
+    } else {
+      return res.status(403).json({ message: 'Access denied' });
     }
 
     res.status(200).json(leads);
   } catch (error) {
-    console.error('Error fetching leads:', error);
     res.status(500).json({ message: 'Error fetching leads', error: error.message });
   }
 };
+
 
 // Get a single lead by ID
 exports.getLeadById = async (req, res) => {

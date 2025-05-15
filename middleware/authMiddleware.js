@@ -5,29 +5,25 @@ exports.protect = async (req, res, next) => {
   try {
     let token;
 
-    // Check if Authorization header exists and starts with 'Bearer'
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
       token = req.headers.authorization.split(' ')[1];
-      console.log('Extracted token:', token);
     }
 
     if (!token) {
       return res.status(401).json({ message: 'Unauthorized: No token provided' });
     }
 
-    // Verify token
+    // ✅ Decode the token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log('Decoded JWT:', decoded);
-
+    console.log("Decoded JWT:", decoded); // Add this
     const user = await User.findById(decoded.id).select('-password');
-    console.log('Fetched user:', user); // Exclude password
+    console.log("Fetched user:", user);   // Add this
 
     if (!user) {
       return res.status(401).json({ message: 'Unauthorized: User not found' });
     }
 
-    req.user = user; 
-    console.log('User attached to request:', req.user.name); 
+    req.user = user;
     next();
   } catch (error) {
     console.error('Auth Error:', error.message);
