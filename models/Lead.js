@@ -15,7 +15,9 @@ const leadSchema = new mongoose.Schema(
       name: { type: String, required: true },
       phone: { type: String },      
       company: { type: String },
+      
     },
+    isFrozen: { type: Boolean, default: false },
     status: {
       type: String,
       enum: ['New', 'In Progress', 'Followed Up', 'Converted', 'Closed', 'Not Interested'],

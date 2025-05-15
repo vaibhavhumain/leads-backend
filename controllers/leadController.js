@@ -31,7 +31,7 @@ exports.createLead = async (req, res) => {
     res.status(500).json({ message: 'Error creating lead', error: error.message });
   }
 };
-// Forward lead to another user (clean version without email)
+// Forward lead to another user
 exports.forwardLead = async (req, res) => {
   const { leadId, userId } = req.body;
   const loggedInUser = req.user;
@@ -66,8 +66,8 @@ exports.forwardLead = async (req, res) => {
       forwardedAt: new Date(),
     };
     lead.status = 'In Progress';
-    lead.previousDetails = null;
-
+    lead.previousDetails = null; 
+    lead.isFrozen = true; 
     await lead.save();
     console.log("✅ Lead updated and saved");
 
@@ -172,11 +172,18 @@ exports.updateLeadStatus = async (req, res) => {
   if (!validStatuses.includes(status)) {
     return res.status(400).json({ message: 'Invalid status value' });
   }
+
   try {
     const lead = await Lead.findById(id);
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
 
     lead.status = status;
+
+    // ✅ If the forwarded user is updating the status, unfreeze for the creator
+    if (lead.forwardedTo?.user?.toString() === req.user._id.toString()) {
+      lead.isFrozen = false;
+    }
+
     await lead.save();
 
     res.status(200).json({ message: 'Lead status updated successfully', lead });
