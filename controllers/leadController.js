@@ -164,9 +164,10 @@ exports.getLeadById = async (req, res) => {
 };
 
 // Update lead status
+// Update lead status
 exports.updateLeadStatus = async (req, res) => {
   const { id } = req.params;
-  const { status } = req.body;
+  const { status, remarks, date } = req.body;
   const validStatuses = ['New', 'In Progress', 'Followed Up', 'Converted', 'Closed', 'Not Interested'];
 
   if (!validStatuses.includes(status)) {
@@ -177,11 +178,21 @@ exports.updateLeadStatus = async (req, res) => {
     const lead = await Lead.findById(id);
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
 
+    // ✅ Update fields
     lead.status = status;
+    if (remarks) lead.remarks = remarks;
+    if (date) lead.date = date;
 
     // ✅ If the forwarded user is updating the status, unfreeze for the creator
     if (lead.forwardedTo?.user?.toString() === req.user._id.toString()) {
       lead.isFrozen = false;
+    }
+
+    // ✅ Check if this request is coming from the Profile Page
+    if (req.query.removeFromForwarded === 'true') {
+      if (lead.forwardedTo?.user?.toString() === req.user._id.toString()) {
+        lead.forwardedTo = null; // Remove user from forwardedTo field
+      }
     }
 
     await lead.save();
@@ -192,6 +203,7 @@ exports.updateLeadStatus = async (req, res) => {
     res.status(500).json({ message: 'Error updating lead status', error: error.message });
   }
 };
+
 
 // Get leads forwarded TO the logged-in user
 exports.getForwardedLeadsToMe = async (req, res) => {
