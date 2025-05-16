@@ -193,6 +193,28 @@ exports.updateLeadStatus = async (req, res) => {
   }
 };
 
+exports.updateConnectionStatus = async (req, res) => {
+  const { id } = req.params;
+  const { connectionStatus } = req.body;
+
+  if (!['Connected', 'Not Connected'].includes(connectionStatus)) {
+    return res.status(400).json({ message: 'Invalid connection status' });
+  }
+
+  try {
+    const lead = await Lead.findById(id);
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+
+    lead.connectionStatus = connectionStatus;
+    await lead.save();
+
+    res.status(200).json({ message: 'Connection status updated', lead });
+  } catch (error) {
+    console.error('Error updating connection status:', error);
+    res.status(500).json({ message: 'Error updating connection status', error: error.message });
+  }
+};
+
 
 // Get leads forwarded TO the logged-in user
 exports.getForwardedLeadsToMe = async (req, res) => {

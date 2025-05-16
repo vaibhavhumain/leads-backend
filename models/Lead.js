@@ -23,6 +23,12 @@ const leadSchema = new mongoose.Schema(
   enum: ['Hot', 'Warm', 'Cold'],
   default: 'Cold', 
 },
+connectionStatus: {
+  type: String,
+  enum: ['Connected', 'Not Connected'],
+  default: 'Not Connected',
+},
+
     followUps: [followUpSchema], 
     forwardedTo: forwardedToSchema,
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },

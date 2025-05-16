@@ -1,3 +1,4 @@
+const { updateConnectionStatus } = require('../controllers/leadController');
 const express = require('express');
 const {
   createLead,
@@ -36,5 +37,8 @@ router.put('/:id/status', protect, updateLeadStatus);
 
 // ✅ Get a single lead by its ID
 router.get('/:id', protect, getLeadById);
+
+// ✅ Update lead connection status
+router.put('/:id/connection-status', protect, updateConnectionStatus);
 
 module.exports = router;
