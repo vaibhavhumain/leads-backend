@@ -32,6 +32,7 @@ exports.createLead = async (req, res) => {
   }
 };
 // Forward lead to another user
+// Forward lead to another user
 exports.forwardLead = async (req, res) => {
   const { leadId, userId } = req.body;
   const loggedInUser = req.user;
@@ -48,30 +49,27 @@ exports.forwardLead = async (req, res) => {
     console.log("✅ Fetched lead:", lead?._id);
 
     if (!lead) {
-      console.log("❌ Lead not found");
       return res.status(404).json({ message: 'Lead not found' });
     }
 
     const receiver = await User.findById(userId);
-    console.log("✅ Fetched receiver:", receiver?.email);
-
     if (!receiver || !receiver.email) {
-      console.log("❌ Receiver user not found or no email");
       return res.status(404).json({ message: 'Receiver user not found or email not available' });
     }
 
-    // Update lead
+    // ✅ Only assign forwardedTo and freeze access
     lead.forwardedTo = {
       user: userId,
       forwardedAt: new Date(),
     };
-    lead.status = 'In Progress';
-    lead.previousDetails = null; 
-    lead.isFrozen = true; 
+    lead.isFrozen = true;
     await lead.save();
-    console.log("✅ Lead updated and saved");
 
-    res.status(200).json({ message: 'Lead forwarded successfully', lead });
+    const updatedLead = await Lead.findById(leadId)
+      .populate('createdBy', 'name email')
+      .populate('forwardedTo.user', 'name email');
+
+    res.status(200).json({ message: 'Lead forwarded successfully', lead: updatedLead });
 
   } catch (error) {
     console.error('🔥 Error forwarding lead:', {
@@ -82,7 +80,6 @@ exports.forwardLead = async (req, res) => {
     res.status(500).json({ message: 'Error forwarding lead', error: error.message });
   }
 };
-
 
 // Add a follow-up call
 exports.addFollowUp = async (req, res) => {
