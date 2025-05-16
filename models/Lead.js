@@ -28,6 +28,8 @@ connectionStatus: {
   enum: ['Connected', 'Not Connected'],
   default: 'Not Connected',
 },
+    remarks: { type: String },  
+    date: { type: Date }, 
 
     followUps: [followUpSchema], 
     forwardedTo: forwardedToSchema,
