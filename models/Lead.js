@@ -30,6 +30,13 @@ connectionStatus: {
 },
     remarks: { type: String },  
     date: { type: Date }, 
+    remarksHistory: [
+  {
+    remarks: String,
+    date: Date,
+    updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  }
+],
 
     followUps: [followUpSchema], 
     forwardedTo: forwardedToSchema,

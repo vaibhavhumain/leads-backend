@@ -32,7 +32,6 @@ exports.createLead = async (req, res) => {
   }
 };
 // Forward lead to another user
-// Forward lead to another user
 exports.forwardLead = async (req, res) => {
   const { leadId, userId } = req.body;
   const loggedInUser = req.user;
@@ -124,15 +123,18 @@ exports.getLeads = async (req, res) => {
     if (role === 'admin') {
       leads = await Lead.find()
         .populate('createdBy', 'name email')
-        .populate('forwardedTo.user', 'name email');
+        .populate('forwardedTo.user', 'name email')
+        .populate('remarksHistory.updatedBy', 'name');
     } else if (role === 'bd') {
       leads = await Lead.find({ createdBy: userId })
         .populate('createdBy', 'name email')
-        .populate('forwardedTo.user', 'name email');
+        .populate('forwardedTo.user', 'name email')
+        .populate('remarksHistory.updatedBy', 'name');
     } else if (role === 'sales') {
       leads = await Lead.find({ 'forwardedTo.user': userId })
         .populate('createdBy', 'name email')
-        .populate('forwardedTo.user', 'name email');
+        .populate('forwardedTo.user', 'name email')
+        .populate('remarksHistory.updatedBy', 'name');
     } else {
       return res.status(403).json({ message: 'Access denied' });
     }
@@ -142,6 +144,7 @@ exports.getLeads = async (req, res) => {
     res.status(500).json({ message: 'Error fetching leads', error: error.message });
   }
 };
+
 
 
 // Get a single lead by ID
@@ -176,8 +179,16 @@ exports.updateLeadStatus = async (req, res) => {
 
     // ✅ Update fields
     lead.status = status;
-    if (remarks) lead.remarks = remarks;
-    if (date) lead.date = date;
+     if (remarks) {
+      lead.remarks = remarks;
+      lead.date = date || new Date();
+
+      lead.remarksHistory.push({
+        remarks,
+        date: new Date(),
+        updatedBy: req.user._id,
+      });
+    }
     if (lead.forwardedTo?.user?.toString() === req.user._id.toString()) {
       lead.isFrozen = false;
     }
@@ -242,7 +253,8 @@ exports.getMyLeads = async (req, res) => {
       ]
     })
       .populate('createdBy', 'name email')
-      .populate('forwardedTo.user', 'name email');
+      .populate('forwardedTo.user', 'name email')
+      .populate('remarksHistory.updatedBy', 'name');
 
     res.status(200).json(leads);
   } catch (error) {
