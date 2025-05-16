@@ -196,7 +196,7 @@ exports.updateLeadStatus = async (req, res) => {
 exports.updateConnectionStatus = async (req, res) => {
   const { id } = req.params;
   const { connectionStatus } = req.body;
-
+  console.log('🟡 Received:', { id, connectionStatus });
   if (!['Connected', 'Not Connected'].includes(connectionStatus)) {
     return res.status(400).json({ message: 'Invalid connection status' });
   }
