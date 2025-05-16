@@ -167,7 +167,7 @@ exports.getLeadById = async (req, res) => {
 exports.updateLeadStatus = async (req, res) => {
   const { id } = req.params;
   const { status, remarks, date } = req.body;
-  const validStatuses = ['New', 'In Progress', 'Followed Up', 'Converted', 'Closed', 'Not Interested'];
+  const validStatuses = ['Hot', 'Warm', 'Cold',];
 
   if (!validStatuses.includes(status)) {
     return res.status(400).json({ message: 'Invalid status value' });
