@@ -126,12 +126,12 @@ exports.getLeads = async (req, res) => {
         .populate('forwardedTo.user', 'name email')
         .populate('remarksHistory.updatedBy', 'name');
     } else if (role === 'bd') {
-      leads = await Lead.find({ createdBy: userId })
+      leads = await Lead.find({ createdBy: { $ne: userId } }) // ❌ Exclude own leads
         .populate('createdBy', 'name email')
         .populate('forwardedTo.user', 'name email')
         .populate('remarksHistory.updatedBy', 'name');
     } else if (role === 'sales') {
-      leads = await Lead.find({ 'forwardedTo.user': userId })
+      leads = await Lead.find({ 'forwardedTo.user': userId }) // forwarded leads only
         .populate('createdBy', 'name email')
         .populate('forwardedTo.user', 'name email')
         .populate('remarksHistory.updatedBy', 'name');
@@ -146,6 +146,20 @@ exports.getLeads = async (req, res) => {
 };
 
 
+// Get all leads (for search purpose)
+exports.getAllLeads = async (req, res) => {
+  try {
+    const leads = await Lead.find()
+      .populate('createdBy', 'name email')
+      .populate('forwardedTo.user', 'name email')
+      .populate('remarksHistory.updatedBy', 'name');
+
+    res.status(200).json(leads);
+  } catch (error) {
+    console.error('Error fetching all leads:', error);
+    res.status(500).json({ message: 'Error fetching all leads', error: error.message });
+  }
+};
 
 // Get a single lead by ID
 exports.getLeadById = async (req, res) => {

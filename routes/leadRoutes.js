@@ -6,6 +6,7 @@ const {
   addFollowUp,
   getMyLeads,
   getLeads,
+  getAllLeads,
   getLeadById,
   updateLeadStatus,
   getForwardedLeadsToMe,
@@ -28,6 +29,9 @@ router.get('/', protect, getLeads);
 
 // ✅ Get leads created by the logged-in user
 router.get('/my-leads', protect, getMyLeads);
+
+// ✅ Get all leads
+router.get('/all', protect, getAllLeads);
 
 // ✅ Get leads forwarded to the logged-in user
 router.get('/forwarded-to-me', protect, getForwardedLeadsToMe);
