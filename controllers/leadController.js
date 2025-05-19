@@ -294,6 +294,17 @@ exports.deleteLead = async (req, res) => {
   }
 };
 
+exports.deleteAllLeads = async (req, res) => {
+  try {
+    const result = await Lead.deleteMany({});
+    res.status(200).json({ message: `Deleted ${result.deletedCount} leads` });
+  } catch (error) {
+    console.error('Error deleting all leads:', error);
+    res.status(500).json({ message: 'Failed to delete all leads', error: error.message });
+  }
+};
+
+
 exports.updateConnectionStatus = async (req, res) => {
   const { id } = req.params;
   const { connectionStatus } = req.body;

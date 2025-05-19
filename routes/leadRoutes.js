@@ -13,6 +13,7 @@ const {
   getForwardedLeadsToMe,
   searchLeadsByPhone,
   deleteLead,
+  deleteAllLeads,
 } = require('../controllers/leadController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -35,6 +36,10 @@ router.get('/', protect, getLeads);
 
 // ✅ Delete a lead
 router.delete('/:id', protect, deleteLead);
+
+// ✅ Delete all leads (Admin only)
+router.delete('/', protect, deleteAllLeads);
+
 
 // ✅ Get leads created by the logged-in user
 router.get('/my-leads', protect, getMyLeads);
