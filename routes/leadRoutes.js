@@ -1,4 +1,5 @@
 const { updateConnectionStatus } = require('../controllers/leadController');
+const { bulkCreateLeads } = require('../controllers/leadController');
 const express = require('express');
 const {
   createLead,
@@ -24,6 +25,9 @@ router.post('/forward', protect, forwardLead);
 
 // ✅ Add a follow-up to a lead
 router.post('/followup', protect, addFollowUp);
+
+// ✅ Bulk lead import
+router.post('/bulk', protect, bulkCreateLeads);
 
 // ✅ Get all leads (Admin or team-based access)
 router.get('/', protect, getLeads);

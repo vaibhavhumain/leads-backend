@@ -160,6 +160,29 @@ exports.getAllLeads = async (req, res) => {
     res.status(500).json({ message: 'Error fetching all leads', error: error.message });
   }
 };
+// Bulk create leads
+exports.bulkCreateLeads = async (req, res) => {
+  const { leads } = req.body;
+
+  if (!Array.isArray(leads) || leads.length === 0) {
+    return res.status(400).json({ message: 'Leads array is required' });
+  }
+
+  try {
+    const leadsWithCreator = leads.map((lead) => ({
+      ...lead,
+      createdBy: req.user.id,
+    }));
+
+    const createdLeads = await Lead.insertMany(leadsWithCreator);
+
+    res.status(201).json({ message: 'Leads created successfully', leads: createdLeads });
+  } catch (error) {
+    console.error('Error bulk-creating leads:', error);
+    res.status(500).json({ message: 'Error creating leads', error: error.message });
+  }
+};
+
 // Search leads globally by phone number
 exports.searchLeadsByPhone = async (req, res) => {
   const { phone } = req.query;
