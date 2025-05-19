@@ -37,17 +37,16 @@ router.get('/all', protect, getAllLeads);
 // ✅ Get leads forwarded to the logged-in user
 router.get('/forwarded-to-me', protect, getForwardedLeadsToMe);
 
-// ✅ Update lead status
-router.put('/:id/status', protect, updateLeadStatus);
+// ✅ Search leads globally by phone number
+router.get('/search', protect, searchLeadsByPhone); // ⬅️ MOVE THIS ABOVE `/:id`
 
 // ✅ Get a single lead by its ID
 router.get('/:id', protect, getLeadById);
 
+// ✅ Update lead status
+router.put('/:id/status', protect, updateLeadStatus);
+
 // ✅ Update lead connection status
 router.put('/:id/connection-status', protect, updateConnectionStatus);
-
-// ✅ Search leads globally by phone number
-router.get('/search', protect, searchLeadsByPhone);
-
 
 module.exports = router;
