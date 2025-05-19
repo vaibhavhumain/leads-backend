@@ -32,6 +32,9 @@ router.post('/bulk', protect, bulkCreateLeads);
 // ✅ Get all leads (Admin or team-based access)
 router.get('/', protect, getLeads);
 
+// ✅ Delete a lead
+router.delete('/:id', protect, deleteLead);
+
 // ✅ Get leads created by the logged-in user
 router.get('/my-leads', protect, getMyLeads);
 
