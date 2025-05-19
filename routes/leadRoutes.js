@@ -12,6 +12,7 @@ const {
   updateLeadStatus,
   getForwardedLeadsToMe,
   searchLeadsByPhone,
+  deleteLead,
 } = require('../controllers/leadController');
 const { protect } = require('../middleware/authMiddleware');
 
