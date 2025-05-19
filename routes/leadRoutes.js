@@ -10,6 +10,7 @@ const {
   getLeadById,
   updateLeadStatus,
   getForwardedLeadsToMe,
+  searchLeadsByPhone,
 } = require('../controllers/leadController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -44,5 +45,9 @@ router.get('/:id', protect, getLeadById);
 
 // ✅ Update lead connection status
 router.put('/:id/connection-status', protect, updateConnectionStatus);
+
+// ✅ Search leads globally by phone number
+router.get('/search', protect, searchLeadsByPhone);
+
 
 module.exports = router;

@@ -160,6 +160,28 @@ exports.getAllLeads = async (req, res) => {
     res.status(500).json({ message: 'Error fetching all leads', error: error.message });
   }
 };
+// Search leads globally by phone number
+exports.searchLeadsByPhone = async (req, res) => {
+  const { phone } = req.query;
+
+  if (!phone) {
+    return res.status(400).json({ message: 'Phone number is required' });
+  }
+
+  try {
+    const leads = await Lead.find({
+      'leadDetails.phone': { $regex: phone, $options: 'i' } // case-insensitive partial match
+    })
+      .populate('createdBy', 'name email')
+      .populate('forwardedTo.user', 'name email')
+      .populate('remarksHistory.updatedBy', 'name');
+
+    res.status(200).json(leads);
+  } catch (error) {
+    console.error('Error searching leads:', error);
+    res.status(500).json({ message: 'Error searching leads', error: error.message });
+  }
+};
 
 // Get a single lead by ID
 exports.getLeadById = async (req, res) => {
