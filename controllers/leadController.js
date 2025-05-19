@@ -169,19 +169,37 @@ exports.searchLeadsByPhone = async (req, res) => {
   }
 
   try {
-    const leads = await Lead.find({
-      'leadDetails.phone': { $regex: phone, $options: 'i' } // case-insensitive partial match
-    })
+    console.log('🔍 Searching leads by phone:', phone);
+
+    const query = {
+      $and: [
+        { leadDetails: { $exists: true, $ne: null } },
+        { 'leadDetails.phone': { $regex: phone, $options: 'i' } }
+      ]
+    };
+
+    console.log('🧾 Query:', JSON.stringify(query));
+
+    const leads = await Lead.find(query)
       .populate('createdBy', 'name email')
       .populate('forwardedTo.user', 'name email')
       .populate('remarksHistory.updatedBy', 'name');
 
+    console.log(`✅ Found ${leads.length} leads`);
     res.status(200).json(leads);
   } catch (error) {
-    console.error('Error searching leads:', error);
-    res.status(500).json({ message: 'Error searching leads', error: error.message });
+    console.error('🔥 REAL BACKEND ERROR in searchLeadsByPhone:', {
+      message: error.message,
+      stack: error.stack,
+    });
+
+    res.status(500).json({
+      message: 'Error searching leads',
+      error: error.message,
+    });
   }
 };
+
 
 // Get a single lead by ID
 exports.getLeadById = async (req, res) => {
