@@ -14,7 +14,7 @@ const leadSchema = new mongoose.Schema(
     leadDetails: {
       source: { type: String },
       clientName: { type: String, default: 'N/A' }, 
-      contact: { type: String }, 
+      phone: { type: String }, 
       companyName: { type: String },
       location: { type: String },
       
