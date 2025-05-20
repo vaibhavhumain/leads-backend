@@ -259,11 +259,9 @@ exports.searchLeadsByPhone = async (req, res) => {
     const query = {
       $and: [
         { leadDetails: { $exists: true, $ne: null } },
-        { 'leadDetails.phone': { $regex: phone, $options: 'i' } }
+        { 'leadDetails.contact': { $regex: phone, $options: 'i' } } // 🔧 fixed here
       ]
     };
-
-    console.log('🧾 Query:', JSON.stringify(query));
 
     const leads = await Lead.find(query)
       .populate('createdBy', 'name email')
@@ -284,6 +282,7 @@ exports.searchLeadsByPhone = async (req, res) => {
     });
   }
 };
+
 
 
 // Get a single lead by ID
