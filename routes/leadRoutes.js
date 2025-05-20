@@ -60,8 +60,8 @@ router.get('/all', protect, getAllLeads);
 // ✅ Get leads forwarded to the logged-in user
 router.get('/forwarded-to-me', protect, getForwardedLeadsToMe);
 
-// ✅ Search leads globally by phone number
-router.get('/search', protect, searchLeadsByPhone); // ⬅️ MOVE THIS ABOVE `/:id`
+// ✅ Search leads by phone number
+router.get('/search', protect, searchLeadsByPhone);
 
 // ✅ Get a single lead by its ID
 router.get('/:id', protect, getLeadById);
