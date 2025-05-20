@@ -23,6 +23,14 @@ const leadSchema = new mongoose.Schema(
   enum: ['Hot', 'Warm', 'Cold'],
   default: 'Cold', 
 },
+timingHistory: [
+  {
+    startedAt: { type: Date },
+    stoppedAt: { type: Date },
+    duration: { type: Number } // in seconds
+  }
+],
+
 connectionStatus: {
   type: String,
   enum: ['Connected', 'Not Connected'],

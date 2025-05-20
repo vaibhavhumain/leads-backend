@@ -304,6 +304,24 @@ exports.deleteAllLeads = async (req, res) => {
   }
 };
 
+exports.addLeadTiming = async (req, res) => {
+  const { id } = req.params;
+  const { startedAt, stoppedAt, duration } = req.body;
+
+  try {
+    const lead = await Lead.findById(id);
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+
+    lead.timingHistory.push({ startedAt, stoppedAt, duration });
+    await lead.save();
+
+    res.status(200).json({ message: 'Timing recorded', lead });
+  } catch (err) {
+    console.error('Error recording lead timing:', err);
+    res.status(500).json({ message: 'Failed to record timing' });
+  }
+};
+
 
 exports.updateConnectionStatus = async (req, res) => {
   const { id } = req.params;
