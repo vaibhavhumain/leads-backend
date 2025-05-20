@@ -174,12 +174,12 @@ exports.bulkCreateLeads = async (req, res) => {
   try {
     const leadsWithCreator = leads.map((lead) => ({
       leadDetails: {
-        source: lead.leadDetails?.source || '',
-        clientName: lead.leadDetails?.clientName || 'N/A',
-        contact: lead.leadDetails?.contact || '',
-        companyName: lead.leadDetails?.companyName || '',
-        location: lead.leadDetails?.location || '',
-      },
+    companyName: lead.leadDetails?.companyName || '',
+    contact: lead.leadDetails?.contact || '',
+    location: lead.leadDetails?.location || '',
+    source: 'Excel Upload', // Optional
+    clientName: 'N/A',      // Optional
+  },
       status: lead.status || 'Cold',
       connectionStatus: lead.connectionStatus || 'Not Connected',
       createdBy: req.user.id,

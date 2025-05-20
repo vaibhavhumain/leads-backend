@@ -12,13 +12,12 @@ const forwardedToSchema = new mongoose.Schema({
 const leadSchema = new mongoose.Schema(
   {
     leadDetails: {
-      source: { type: String },
-      clientName: { type: String, default: 'N/A' }, 
-      contact: { type: String }, 
-      companyName: { type: String },
-      location: { type: String },
-      
-    },
+  companyName: { type: String },
+  contact: { type: String },  // ✅ matches Excel
+  location: { type: String },
+  clientName: { type: String, default: 'N/A' }, // Optional: can be ignored
+  source: { type: String }, // Optional: can default to 'Excel Upload'
+},
     isFrozen: { type: Boolean, default: false },
     status: {
   type: String,
