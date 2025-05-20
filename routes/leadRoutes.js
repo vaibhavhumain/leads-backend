@@ -14,7 +14,8 @@ const {
   searchLeadsByPhone,
   deleteLead,
   deleteAllLeads,
-  updateClientName
+  updateClientName,
+  updateEmail,
 } = require('../controllers/leadController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -25,6 +26,10 @@ router.post('/create', protect, createLead);
 
 // ✅ Forward a lead to another user
 router.post('/forward', protect, forwardLead);
+
+// ✅ Update lead email
+router.put('/:id/email', protect, updateEmail);
+
 
 // ✅ Add a follow-up to a lead
 router.post('/followup', protect, addFollowUp);

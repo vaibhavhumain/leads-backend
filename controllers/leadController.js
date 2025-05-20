@@ -221,6 +221,30 @@ exports.bulkCreateLeads = async (req, res) => {
   }
 };
 
+// Update lead email
+exports.updateEmail = async (req, res) => {
+  const { id } = req.params;
+  const { email } = req.body;
+
+  if (!email || !email.trim()) {
+    return res.status(400).json({ message: 'Email is required' });
+  }
+
+  try {
+    const lead = await Lead.findById(id);
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+
+    lead.leadDetails.email = email.trim();
+    await lead.save();
+
+    res.status(200).json({ message: 'Email updated', lead });
+  } catch (err) {
+    console.error('Error updating email:', err);
+    res.status(500).json({ message: 'Failed to update email' });
+  }
+};
+
+
 // Search leads globally by phone number
 exports.searchLeadsByPhone = async (req, res) => {
   const { phone } = req.query;

@@ -15,8 +15,9 @@ const leadSchema = new mongoose.Schema(
   companyName: { type: String },
   contact: { type: String }, 
   location: { type: String },
-  clientName: { type: String, default: 'N/A' }, 
+  clientName: { type: String, default: '' }, 
   source: { type: String }, 
+  email: { type: String, default: '' },
 },
     isFrozen: { type: Boolean, default: false },
     status: {
