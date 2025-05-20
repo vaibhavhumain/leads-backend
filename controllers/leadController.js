@@ -34,6 +34,29 @@ exports.createLead = async (req, res) => {
   }
 };
 
+
+exports.updateClientName = async (req, res) => {
+  const { id } = req.params;
+  const { clientName } = req.body;
+
+  if (!clientName || !clientName.trim()) {
+    return res.status(400).json({ message: 'Client name is required' });
+  }
+
+  try {
+    const lead = await Lead.findById(id);
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+
+    lead.leadDetails.clientName = clientName.trim();
+    await lead.save();
+
+    res.status(200).json({ message: 'Client name updated', lead });
+  } catch (err) {
+    console.error('Error updating client name:', err);
+    res.status(500).json({ message: 'Failed to update client name' });
+  }
+};
+
 // Forward lead to another user
 exports.forwardLead = async (req, res) => {
   const { leadId, userId } = req.body;

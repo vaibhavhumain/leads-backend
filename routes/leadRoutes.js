@@ -14,6 +14,7 @@ const {
   searchLeadsByPhone,
   deleteLead,
   deleteAllLeads,
+  updateClientName
 } = require('../controllers/leadController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -36,6 +37,10 @@ router.get('/', protect, getLeads);
 
 // ✅ Delete a lead
 router.delete('/:id', protect, deleteLead);
+
+// ✅ Update lead details
+router.put('/:id/client-name', protect, updateClientName);
+
 
 // ✅ Delete all leads (Admin only)
 router.delete('/', protect, deleteAllLeads);

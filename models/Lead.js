@@ -13,10 +13,10 @@ const leadSchema = new mongoose.Schema(
   {
     leadDetails: {
   companyName: { type: String },
-  contact: { type: String },  // ✅ matches Excel
+  contact: { type: String }, 
   location: { type: String },
-  clientName: { type: String, default: 'N/A' }, // Optional: can be ignored
-  source: { type: String }, // Optional: can default to 'Excel Upload'
+  clientName: { type: String, default: 'N/A' }, 
+  source: { type: String }, 
 },
     isFrozen: { type: Boolean, default: false },
     status: {
