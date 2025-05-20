@@ -6,14 +6,18 @@ exports.createLead = async (req, res) => {
   const { leadDetails } = req.body;
 
   try {
-    if (!leadDetails) {
-      return res.status(400).json({ message: 'Lead details are required' });
+    if (!leadDetails?.contact) {
+      return res.status(400).json({ message: 'Contact number or email is required' });
     }
 
-    console.log('Received leadDetails:', leadDetails); 
-
     const newLead = new Lead({
-      leadDetails,
+      leadDetails: {
+        source: leadDetails.source || '',
+        clientName: leadDetails.clientName || 'N/A',  // Default to 'N/A'
+        contact: leadDetails.contact || '',
+        companyName: leadDetails.companyName || '',
+        location: leadDetails.location || '',
+      },
       createdBy: req.user.id,
     });
 
@@ -23,14 +27,13 @@ exports.createLead = async (req, res) => {
       .populate('createdBy', 'name email')
       .populate('forwardedTo.user', 'name email');
 
-    console.log('Saved lead:', populatedLead); 
-
     res.status(201).json({ message: 'Lead created successfully', lead: populatedLead });
   } catch (error) {
     console.error('Error creating lead:', error);
     res.status(500).json({ message: 'Error creating lead', error: error.message });
   }
 };
+
 // Forward lead to another user
 exports.forwardLead = async (req, res) => {
   const { leadId, userId } = req.body;
@@ -170,8 +173,20 @@ exports.bulkCreateLeads = async (req, res) => {
 
   try {
     const leadsWithCreator = leads.map((lead) => ({
-      ...lead,
+      leadDetails: {
+        source: lead.leadDetails?.source || '',
+        clientName: lead.leadDetails?.clientName || 'N/A',
+        contact: lead.leadDetails?.contact || '',
+        companyName: lead.leadDetails?.companyName || '',
+        location: lead.leadDetails?.location || '',
+      },
+      status: lead.status || 'Cold',
+      connectionStatus: lead.connectionStatus || 'Not Connected',
       createdBy: req.user.id,
+      followUps: [],
+      forwardedTo: {},
+      isFrozen: false,
+      remarksHistory: [],
     }));
 
     const createdLeads = await Lead.insertMany(leadsWithCreator);
@@ -301,24 +316,6 @@ exports.deleteAllLeads = async (req, res) => {
   } catch (error) {
     console.error('Error deleting all leads:', error);
     res.status(500).json({ message: 'Failed to delete all leads', error: error.message });
-  }
-};
-
-exports.addLeadTiming = async (req, res) => {
-  const { id } = req.params;
-  const { startedAt, stoppedAt, duration } = req.body;
-
-  try {
-    const lead = await Lead.findById(id);
-    if (!lead) return res.status(404).json({ message: 'Lead not found' });
-
-    lead.timingHistory.push({ startedAt, stoppedAt, duration });
-    await lead.save();
-
-    res.status(200).json({ message: 'Timing recorded', lead });
-  } catch (err) {
-    console.error('Error recording lead timing:', err);
-    res.status(500).json({ message: 'Failed to record timing' });
   }
 };
 

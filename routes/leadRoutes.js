@@ -14,7 +14,6 @@ const {
   searchLeadsByPhone,
   deleteLead,
   deleteAllLeads,
-  addLeadTiming,
 } = require('../controllers/leadController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -31,9 +30,6 @@ router.post('/followup', protect, addFollowUp);
 
 // ✅ Bulk lead import
 router.post('/bulk', protect, bulkCreateLeads);
-
-// ✅ Add lead timing
-router.post('/:id/timing', protect, addLeadTiming);
 
 // ✅ Get all leads (Admin or team-based access)
 router.get('/', protect, getLeads);

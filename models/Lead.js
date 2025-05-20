@@ -12,9 +12,11 @@ const forwardedToSchema = new mongoose.Schema({
 const leadSchema = new mongoose.Schema(
   {
     leadDetails: {
-      name: { type: String, required: true },
-      phone: { type: String },      
-      company: { type: String },
+      source: { type: String },
+      clientName: { type: String, default: 'N/A' }, 
+      contact: { type: String }, 
+      companyName: { type: String },
+      location: { type: String },
       
     },
     isFrozen: { type: Boolean, default: false },
@@ -23,13 +25,7 @@ const leadSchema = new mongoose.Schema(
   enum: ['Hot', 'Warm', 'Cold'],
   default: 'Cold', 
 },
-timingHistory: [
-  {
-    startedAt: { type: Date },
-    stoppedAt: { type: Date },
-    duration: { type: Number } // in seconds
-  }
-],
+
 
 connectionStatus: {
   type: String,
