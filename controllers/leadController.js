@@ -196,21 +196,23 @@ exports.bulkCreateLeads = async (req, res) => {
 
   try {
     const leadsWithCreator = leads.map((lead) => ({
-      leadDetails: {
+  leadDetails: {
     companyName: lead.leadDetails?.companyName || '',
     contact: lead.leadDetails?.contact || '',
     location: lead.leadDetails?.location || '',
-    source: 'Excel Upload', // Optional
-    clientName: 'N/A',      // Optional
+    source: 'Excel Upload',
+    clientName: lead.leadDetails?.clientName || 'N/A',
+    email: lead.leadDetails?.email || '',
   },
-      status: lead.status || 'Cold',
-      connectionStatus: lead.connectionStatus || 'Not Connected',
-      createdBy: req.user.id,
-      followUps: [],
-      forwardedTo: {},
-      isFrozen: false,
-      remarksHistory: [],
-    }));
+  status: lead.status || 'Cold',
+  connectionStatus: lead.connectionStatus || 'Not Connected',
+  createdBy: req.user.id,
+  followUps: [],
+  forwardedTo: {},
+  isFrozen: false,
+  remarksHistory: [],
+}));
+
 
     const createdLeads = await Lead.insertMany(leadsWithCreator);
 
