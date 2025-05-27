@@ -33,26 +33,7 @@ exports.createLead = async (req, res) => {
     res.status(500).json({ message: 'Error creating lead', error: error.message });
   }
 };
-// Submit client profiling answers
-exports.submitLeadAnswers = async (req, res) => {
-  try {
-    const { leadId, answers } = req.body;
 
-    if (!leadId || !Array.isArray(answers)) {
-      return res.status(400).json({ error: 'leadId and answers array are required' });
-    }
-
-    const lead = await Lead.findByIdAndUpdate(
-      leadId,
-      { $set: { answers } },
-      { new: true }
-    );
-
-    res.status(200).json({ message: 'Answers submitted successfully', lead });
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to submit answers', details: err.message });
-  }
-};
 // update Lead details
 exports.updateClientName = async (req, res) => {
   const { id } = req.params;
