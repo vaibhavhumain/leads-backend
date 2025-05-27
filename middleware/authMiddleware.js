@@ -13,11 +13,10 @@ exports.protect = async (req, res, next) => {
       return res.status(401).json({ message: 'Unauthorized: No token provided' });
     }
 
-    // ✅ Decode the token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log("Decoded JWT:", decoded); // Add this
+    console.log("Decoded JWT:", decoded); 
     const user = await User.findById(decoded.id).select('-password');
-    console.log("Fetched user:", user);   // Add this
+    console.log("Fetched user:", user); 
 
     if (!user) {
       return res.status(401).json({ message: 'Unauthorized: User not found' });

@@ -12,6 +12,7 @@ const forwardedToSchema = new mongoose.Schema({
 const leadSchema = new mongoose.Schema(
   {
     leadDetails: {
+      
   companyName: { type: String },
   contact: { type: String }, 
   location: { type: String },
@@ -19,6 +20,7 @@ const leadSchema = new mongoose.Schema(
   source: { type: String }, 
   email: { type: String, default: '' },
 },
+
     isFrozen: { type: Boolean, default: false },
     status: {
   type: String,
@@ -49,5 +51,15 @@ connectionStatus: {
   },
   { timestamps: true }
 );
+
+const clientProfilingResponseSchema = new mongoose.Schema({
+  question: { type: mongoose.Schema.Types.ObjectId, ref: 'Question', required: true },
+  answer: mongoose.Schema.Types.Mixed, 
+});
+
+leadSchema.add({
+  clientProfilingResponses: [clientProfilingResponseSchema],
+});
+
 
 module.exports = mongoose.model('Lead', leadSchema);

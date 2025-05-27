@@ -34,7 +34,7 @@ exports.createLead = async (req, res) => {
   }
 };
 
-
+// update Lead details
 exports.updateClientName = async (req, res) => {
   const { id } = req.params;
   const { clientName } = req.body;
@@ -138,7 +138,6 @@ exports.addFollowUp = async (req, res) => {
 
 
 // Get all leads (for Admin)
-
 exports.getLeads = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -317,7 +316,6 @@ exports.updateLeadStatus = async (req, res) => {
     const lead = await Lead.findById(id);
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
 
-    // ✅ Update fields
     lead.status = status;
      if (remarks) {
       lead.remarks = remarks;
@@ -341,6 +339,7 @@ exports.updateLeadStatus = async (req, res) => {
   }
 };
 
+// delete a lead
 exports.deleteLead = async (req, res) => {
   try {
     const { id } = req.params;
@@ -357,6 +356,7 @@ exports.deleteLead = async (req, res) => {
   }
 };
 
+// delete all Leads (for admin)
 exports.deleteAllLeads = async (req, res) => {
   try {
     const result = await Lead.deleteMany({});
@@ -367,7 +367,7 @@ exports.deleteAllLeads = async (req, res) => {
   }
 };
 
-
+// updating connection status
 exports.updateConnectionStatus = async (req, res) => {
   const { id } = req.params;
   const { connectionStatus } = req.body;
