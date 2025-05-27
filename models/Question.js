@@ -1,8 +1,9 @@
+// models/Question.js
 const mongoose = require('mongoose');
 
 const questionSchema = new mongoose.Schema({
-  text: { type: String, required: true },
-  type: { type: String, enum: ['text', 'number', 'boolean', 'select'], default: 'text' },
+  text: String,
+  type: String,
   options: [String],
 });
 

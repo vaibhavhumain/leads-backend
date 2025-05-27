@@ -1,11 +1,17 @@
 const Lead = require('../models/Lead');
+const Question = require('../models/Question');
 
-exports.submitLeadAnswers = async (req, res) => {
+exports.saveQuestionsAndAnswers = async (req, res) => {
   try {
-    const { leadId, answers } = req.body;
+    const { leadId, answers, predefinedQuestions } = req.body;
 
     if (!leadId || !Array.isArray(answers)) {
-      return res.status(400).json({ error: 'leadId and answers array are required' });
+      return res.status(400).json({ error: 'Lead ID and answers are required' });
+    }
+
+    for (const question of predefinedQuestions) {
+      const existing = await Question.findOne({ text: question.text });
+      if (!existing) await Question.create(question);
     }
 
     const lead = await Lead.findByIdAndUpdate(
@@ -14,8 +20,9 @@ exports.submitLeadAnswers = async (req, res) => {
       { new: true }
     );
 
-    res.status(200).json({ message: 'Answers submitted successfully', lead });
+    res.status(200).json({ message: 'Questions saved and answers submitted ✅', lead });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to submit answers', details: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Failed to process', details: err.message });
   }
 };
