@@ -1,5 +1,6 @@
-import Question from "../models/Question";
-import Lead from "../models/Lead";
+const Question = require("../models/Question");
+const Lead = require("../models/Lead");
+
 exports.saveQuestionsAndAnswers = async (req, res) => {
   try {
     const { clientName, answers, predefinedQuestions } = req.body;
