@@ -1,3 +1,4 @@
+import Question from "../models/Question";
 exports.saveQuestionsAndAnswers = async (req, res) => {
   try {
     const { clientName, answers, predefinedQuestions } = req.body;
