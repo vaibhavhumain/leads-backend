@@ -43,6 +43,13 @@ connectionStatus: {
     updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   }
 ],
+answers: [
+  {
+    question: String,
+    answer: String
+  }
+],
+
 
     followUps: [followUpSchema], 
     forwardedTo: forwardedToSchema,

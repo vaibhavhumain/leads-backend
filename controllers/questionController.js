@@ -14,3 +14,13 @@ exports.addMultipleQuestions = async (req, res) => {
     res.status(500).json({ error: 'Failed to save questions', details: err.message });
   }
 };
+
+
+exports.getAllQuestions = async (req, res) => {
+  try {
+    const questions = await Question.find({});
+    res.status(200).json(questions);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch questions', details: err.message });
+  }
+};
