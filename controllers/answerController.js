@@ -1,4 +1,5 @@
 import Question from "../models/Question";
+import Lead from "../models/Lead";
 exports.saveQuestionsAndAnswers = async (req, res) => {
   try {
     const { clientName, answers, predefinedQuestions } = req.body;
