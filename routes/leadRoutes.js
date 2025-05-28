@@ -16,7 +16,7 @@ const {
   deleteAllLeads,
   updateClientName,
   updateEmail,
-  leadController,
+  saveActionPlan,
 } = require('../controllers/leadController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -47,7 +47,7 @@ router.delete('/:id', protect, deleteLead);
 router.put('/:id/client-name', protect, updateClientName);
 
 // ✅ Save action plan for a lead
-router.post('/saveActionPlan', protect, leadController.saveActionPlan);
+router.post('/saveActionPlan', protect, saveActionPlan);
 
 
 // ✅ Delete all leads (Admin only)
