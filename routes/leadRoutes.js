@@ -49,10 +49,8 @@ router.put('/:id/client-name', protect, updateClientName);
 // ✅ Save action plan for a lead
 router.post('/saveActionPlan', protect, saveActionPlan);
 
-
 // ✅ Delete all leads (Admin only)
 router.delete('/', protect, deleteAllLeads);
-
 
 // ✅ Get leads created by the logged-in user
 router.get('/my-leads', protect, getMyLeads);
