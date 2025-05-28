@@ -165,6 +165,22 @@ exports.saveActionPlan = async (req, res) => {
 };
 
 
+// Get Action Plans for a lead
+exports.getActionPlans = async (req, res) => {
+  const { leadId } = req.params;
+
+  try {
+    const lead = await Lead.findById(leadId).populate('actionPlans.addedBy', 'name');
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+
+    res.status(200).json({ actionPlans: lead.actionPlans || [] });
+  } catch (error) {
+    console.error('Error fetching action plans:', error);
+    res.status(500).json({ message: 'Failed to fetch action plans', error: error.message });
+  }
+};
+
+
 // Get all leads (for Admin)
 exports.getLeads = async (req, res) => {
   try {
