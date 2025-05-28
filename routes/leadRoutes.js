@@ -17,7 +17,6 @@ const {
   updateClientName,
   updateEmail,
   leadController,
-  getForwardedLeadsToMe,
 } = require('../controllers/leadController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -31,7 +30,6 @@ router.post('/forward', protect, forwardLead);
 
 // ✅ Update lead email
 router.put('/:id/email', protect, updateEmail);
-
 
 // ✅ Add a follow-up to a lead
 router.post('/followup', protect, addFollowUp);
