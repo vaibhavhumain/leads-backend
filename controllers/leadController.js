@@ -13,7 +13,7 @@ exports.createLead = async (req, res) => {
     const newLead = new Lead({
       leadDetails: {
         source: leadDetails.source || '',
-        clientName: leadDetails.clientName || 'N/A',  // Default to 'N/A'
+        clientName: leadDetails.clientName || 'N/A',  
         contact: leadDetails.contact || '',
         companyName: leadDetails.companyName || '',
         location: leadDetails.location || '',
@@ -133,6 +133,34 @@ exports.addFollowUp = async (req, res) => {
   } catch (error) {
     console.error('Error adding follow-up:', error);
     res.status(500).json({ message: 'Error adding follow-up', error: error.message });
+  }
+};
+
+// Save Action Plan / Remarks
+exports.saveActionPlan = async (req, res) => {
+  const { leadId, actionPlan } = req.body;
+
+  if (!actionPlan || !actionPlan.trim()) {
+    return res.status(400).json({ message: 'Action Plan is required' });
+  }
+
+  try {
+    const lead = await Lead.findById(leadId);
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+
+    lead.actionPlans.unshift({
+      text: actionPlan.trim(),
+      addedBy: req.user._id,
+    });
+
+    await lead.save();
+
+    const updatedLead = await Lead.findById(leadId).populate('actionPlans.addedBy', 'name');
+
+    res.status(200).json({ message: 'Action Plan saved', actionPlans: updatedLead.actionPlans });
+  } catch (error) {
+    console.error('Error saving action plan:', error);
+    res.status(500).json({ message: 'Failed to save action plan', error: error.message });
   }
 };
 

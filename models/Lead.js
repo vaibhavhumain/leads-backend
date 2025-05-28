@@ -20,13 +20,20 @@ const leadSchema = new mongoose.Schema(
   source: { type: String }, 
   email: { type: String, default: '' },
 },
-
-    isFrozen: { type: Boolean, default: false },
-    status: {
+  isFrozen: { type: Boolean, default: false },
+  status: {
   type: String,
   enum: ['Hot', 'Warm', 'Cold'],
   default: 'Cold', 
 },
+actionPlans: [
+  {
+    text: { type: String, required: true },
+    date: { type: Date, default: Date.now },
+    addedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+  }
+],
+
 
 
 connectionStatus: {
