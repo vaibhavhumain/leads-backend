@@ -34,8 +34,6 @@ actionPlans: [
   }
 ],
 
-
-
 connectionStatus: {
   type: String,
   enum: ['Connected', 'Not Connected'],
