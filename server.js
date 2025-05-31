@@ -13,7 +13,13 @@ dotenv.config();
 connectDB();
 
 const app = express();
-app.use(cors());
+const corsOptions = {
+  origin: ['http://localhost:3000', 'https://leadsmanage.netlify.app'],
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
+
 app.use(express.json());
 
 app.use('/api/auth', authRoutes); // Now auth has its own route

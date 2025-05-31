@@ -5,12 +5,25 @@ exports.createEnquiry = async (req, res) => {
   try {
     const enquiry = new Enquiry(req.body);
     const savedEnquiry = await enquiry.save();
+
+    // ✅ Create Lead with answers
+    const newLead = new Lead({
+      leadDetails: {
+        clientName: req.body.businessDetails.businessName,
+        contact: '', // Add contact if available in EnquiryForm
+        source: 'Enquiry Form',
+      },
+      createdBy: req.user?.id || null,
+      answers: req.body.answers || [],
+    });
+
+    await newLead.save();
+
     res.status(201).json(savedEnquiry);
   } catch (err) {
     res.status(500).json({ error: 'Failed to save enquiry', details: err.message });
   }
 };
-
 //Get all enquiries
 exports.getAllEnquiries = async (req, res) => {
   try {
@@ -46,3 +59,4 @@ exports.deleteEnquiryById = async (req, res) => {
     res.status(500).json({ error: 'Failed to delete enquiry', details: err.message });
   }
 };
+  
