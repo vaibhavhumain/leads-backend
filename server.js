@@ -12,13 +12,27 @@ app.use(express.static('public'));
 
 
 // ✅ Define your CORS options
-const corsOptions = {
-  origin: ['http://localhost:3000', 'https://leadsmanage.netlify.app'],
-  credentials: true,
-};
+const allowedOrigins = ['http://localhost:3000', 'https://leadsmanage.netlify.app'];
 
-// ✅ Use CORS middleware
-app.use(cors(corsOptions));
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      return callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+}));
+
+
+app.use((req, res, next) => {
+  console.log(`[${req.method}] ${req.path}`);
+  next();
+});
+
 
 // ✅ Handle preflight OPTIONS requests
 app.options('*', cors(corsOptions));
