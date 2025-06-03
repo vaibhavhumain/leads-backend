@@ -8,16 +8,16 @@ dotenv.config();
 connectDB();
 
 const app = express();
-app.use(express.static('public'));  
 
+// Serve static files from public folder
+app.use(express.static('public'));
 
-// ✅ Define your CORS options
+// ✅ CORS Configuration
 const allowedOrigins = ['http://localhost:3000', 'https://leadsmanage.netlify.app'];
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps, curl, etc.)
-    if (!origin) return callback(null, true);
+    if (!origin) return callback(null, true); // Allow curl/postman requests
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     } else {
@@ -27,20 +27,16 @@ app.use(cors({
   credentials: true,
 }));
 
-
+// ✅ Logger middleware (optional)
 app.use((req, res, next) => {
   console.log(`[${req.method}] ${req.path}`);
   next();
 });
 
-
-// ✅ Handle preflight OPTIONS requests
-app.options('*', cors(corsOptions));
-
-// ✅ Enable JSON parsing
+// ✅ JSON parser
 app.use(express.json());
 
-// ✅ Import & use routes
+// ✅ Routes
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const leadRoutes = require('./routes/leadRoutes');
@@ -55,7 +51,7 @@ app.use('/api/answers', answerRoutes);
 app.use('/api', enquiryRoutes);
 app.use('/api/upload', uploadRoute);
 
-// ✅ Base test route
+// ✅ Test route
 app.get('/', (req, res) => {
   res.send('API is running 🚀');
 });
