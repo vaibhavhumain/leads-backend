@@ -32,7 +32,6 @@ const userRoutes = require('./routes/userRoutes');
 const leadRoutes = require('./routes/leadRoutes');
 const answerRoutes = require('./routes/answerRoutes');
 const enquiryRoutes = require('./routes/enquiryRoutes');
-const sendRoute = require('./routes/send');
 const uploadRoute = require('./routes/upload');
 
 app.use('/api/auth', authRoutes);
@@ -40,7 +39,6 @@ app.use('/api/users', userRoutes);
 app.use('/api/leads', leadRoutes);
 app.use('/api/answers', answerRoutes);
 app.use('/api', enquiryRoutes);
-app.use('/api/send', sendRoute);
 app.use('/api/upload', uploadRoute);
 
 // ✅ Base test route
