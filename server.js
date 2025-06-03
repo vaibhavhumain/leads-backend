@@ -40,8 +40,9 @@ app.use('/api/users', userRoutes);
 app.use('/api/leads', leadRoutes);
 app.use('/api/answers', answerRoutes);
 app.use('/api', enquiryRoutes);
-app.use('/api', sendRoute);
-app.use('/api', uploadRoute);
+app.use('/api/send', sendRoute);
+app.use('/api/upload', uploadRoute);
+
 // ✅ Base test route
 app.get('/', (req, res) => {
   res.send('API is running 🚀');
