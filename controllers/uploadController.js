@@ -27,3 +27,18 @@ exports.uploadImage = (req, res) => {
     });
   });
 };
+
+exports.getAllImages = (req, res) => {
+  const uploadDir = path.join(__dirname, '..', 'public', 'uploads');
+
+  fs.readdir(uploadDir, (err, files) => {
+    if (err) {
+      console.error('Error reading uploads directory:', err);
+      return res.status(500).json({ success: false, error: 'Unable to read uploads' });
+    }
+
+    const imagePaths = files.map((file) => `/uploads/${file}`);
+    res.status(200).json({ success: true, images: imagePaths });
+  });
+};
+
