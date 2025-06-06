@@ -12,8 +12,8 @@ const enquirySchema = new mongoose.Schema({
   numberOfSeats: String,
   optionalFeatures: [String],
   fitmentProvided: [String],
-  createdAt: { type: Date, default: Date.now }
+  pdfData: Buffer, 
+  createdAt: { type: Date, default: Date.now },
 });
 
 module.exports = mongoose.model('Enquiry', enquirySchema);
-    
