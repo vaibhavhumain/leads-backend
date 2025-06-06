@@ -1,5 +1,6 @@
 const Lead = require('../models/Lead');
 const Enquiry = require('../models/Enquiry');
+const generateEnquiryPdf = require('../config/generateEnquiryPdf');
 
 exports.createEnquiry = async (req, res) => {
   try {
@@ -10,10 +11,8 @@ exports.createEnquiry = async (req, res) => {
       return res.status(400).json({ error: '`createdBy` is required' });
     }
 
-    // Save enquiry
     const enquiry = await Enquiry.create(data);
 
-    // Save lead
     await Lead.create({
       leadDetails: {
         clientName: data.customerName,
@@ -21,12 +20,37 @@ exports.createEnquiry = async (req, res) => {
         email: data.customerEmail,
       },
       answers: data,
-      createdBy, // ✅ fixed
+      createdBy,
     });
 
-    res.status(200).json({ message: 'Enquiry submitted successfully ✅' });
+    const pdfBuffer = await generateEnquiryPdf(enquiry);
+    enquiry.pdfData = pdfBuffer;
+    await enquiry.save();
+
+    res.status(200).json({
+      message: 'Enquiry submitted successfully ✅',
+      enquiryId: enquiry._id,
+    });
   } catch (err) {
     console.error('❌ Backend error:', err);
+    res.status(500).json({ error: 'Server error', details: err.message });
+  }
+};
+
+// ✅ NEW: Controller to serve the stored PDF
+exports.downloadEnquiryPdf = async (req, res) => {
+  try {
+    const enquiry = await Enquiry.findById(req.params.id);
+
+    if (!enquiry || !enquiry.pdfData) {
+      return res.status(404).json({ error: 'PDF not found' });
+    }
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=enquiry-${enquiry._id}.pdf`);
+    res.send(enquiry.pdfData);
+  } catch (err) {
+    console.error('❌ Download error:', err);
     res.status(500).json({ error: 'Server error', details: err.message });
   }
 };
