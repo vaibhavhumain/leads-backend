@@ -337,16 +337,10 @@ exports.getLeadById = async (req, res) => {
     const lead = await Lead.findById(req.params.id)
       .populate('createdBy', 'name email')
       .populate('forwardedTo.user', 'name email')
-      .populate('followUps.by', 'name email');
+      .populate('followUps.by', 'name email')
+      .populate('remarksHistory.updatedBy', 'name email'); // ✅ Add this line
 
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
-
-    // 👇 Add this for debugging
-    console.log("✅ Populated followUps:", lead.followUps.map(f => ({
-      date: f.date,
-      notes: f.notes,
-      by: f.by,
-    })));
 
     res.status(200).json(lead);
   } catch (error) {
