@@ -1,4 +1,3 @@
-// server.js
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
@@ -8,43 +7,51 @@ dotenv.config();
 connectDB();
 
 const app = express();
+
+// ✅ Always put express.json() before route handling
+app.use(express.json());
+
+// ✅ Serve static files if needed
 app.use(express.static('public'));
 
-// ✅ CORS Configuration (Simple and Render-friendly)
+// ✅ CORS Configuration
 app.use(cors({
   origin: ['http://localhost:3000', 'https://leadsmanage.netlify.app'],
   credentials: true,
 }));
 
-// ✅ Request logger (Optional)
+// ✅ Handle preflight (OPTIONS) requests globally
+app.options('*', cors());
+
+// ✅ Request logger (optional)
 app.use((req, res, next) => {
   console.log(`[${req.method}] ${req.path}`);
   next();
 });
 
-app.use(express.json());
-
-// ✅ Import & use routes
+// ✅ Route imports
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const leadRoutes = require('./routes/leadRoutes');
 const answerRoutes = require('./routes/answerRoutes');
 const enquiryRoutes = require('./routes/enquiryRoutes');
 const uploadRoute = require('./routes/upload');
+const sendRoute = require('./routes/send');
 
+// ✅ Route usage
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/leads', leadRoutes);
 app.use('/api/answers', answerRoutes);
 app.use('/api', enquiryRoutes);
 app.use('/api/upload', uploadRoute);
-app.use('/api/send', require('./routes/send'));
+app.use('/api/send', sendRoute);
 
-
-// ✅ Test Route
+// ✅ Root route
 app.get('/', (req, res) => {
   res.send('API is running 🚀');
 });
 
+// ✅ Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
