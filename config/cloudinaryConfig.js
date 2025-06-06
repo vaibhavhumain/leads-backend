@@ -1,4 +1,4 @@
-const cloudinary = require('../config/cloudinaryConfig');   
+const { v2: cloudinary } = require('cloudinary'); 
 
 cloudinary.config({
   cloud_name: 'difqelsxz',
