@@ -1,4 +1,5 @@
 const fs = require('fs');
+const cloudinary = require('../config/cloudinaryConfig'); 
 const path = require('path');
 
 const uploadDir = path.join(__dirname, '..', 'public', 'uploads');
@@ -42,3 +43,28 @@ exports.getAllImages = (req, res) => {
   });
 };
 
+exports.uploadMultipleImages = async (req, res) => {
+  const files = req.files;
+  if (!files || files.length === 0) {
+    return res.status(400).json({ success: false, error: 'No files uploaded' });
+  }
+
+  const uploadedUrls = [];
+
+  for (let file of files) {
+    try {
+      const result = await cloudinary.uploader.upload(file.path, {
+        folder: 'gobind_gallery', 
+      });
+      uploadedUrls.push(result.secure_url);
+    } catch (err) {
+      console.error('Cloudinary upload failed:', err);
+    }
+  }
+
+  if (uploadedUrls.length === 0) {
+    return res.status(500).json({ success: false, error: 'All uploads failed' });
+  }
+
+  res.status(200).json({ success: true, images: uploadedUrls });
+};
