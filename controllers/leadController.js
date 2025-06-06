@@ -123,9 +123,10 @@ exports.addFollowUp = async (req, res) => {
       return res.status(400).json({ message: 'Invalid date format' });
     }
     lead.followUps.push({
-      date: followUpDate,
-      notes: followUp.notes,
-    });
+  date: followUpDate,
+  notes: followUp.notes,
+  by: req.user._id  // ✅ Add this line
+});
 
     await lead.save();
 
@@ -335,7 +336,8 @@ exports.getLeadById = async (req, res) => {
   try {
     const lead = await Lead.findById(req.params.id)
       .populate('createdBy', 'name email')
-      .populate('forwardedTo.user', 'name email');
+      .populate('forwardedTo.user', 'name email')
+      .populate('followUps.by', 'name email');
 
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
 
