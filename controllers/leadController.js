@@ -341,6 +341,13 @@ exports.getLeadById = async (req, res) => {
 
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
 
+    // 👇 Add this for debugging
+    console.log("✅ Populated followUps:", lead.followUps.map(f => ({
+      date: f.date,
+      notes: f.notes,
+      by: f.by,
+    })));
+
     res.status(200).json(lead);
   } catch (error) {
     console.error('Error fetching lead:', error);
