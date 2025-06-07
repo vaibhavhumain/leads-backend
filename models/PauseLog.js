@@ -1,5 +1,5 @@
 // models/PauseLog.js
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
 const pauseLogSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -8,4 +8,4 @@ const pauseLogSchema = new mongoose.Schema({
   pausedDuration: Number, // in seconds
 }, { timestamps: true });
 
-export default mongoose.models.PauseLog || mongoose.model('PauseLog', pauseLogSchema);
+module.exports = mongoose.models.PauseLog || mongoose.model('PauseLog', pauseLogSchema);
