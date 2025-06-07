@@ -77,7 +77,7 @@ exports.getAllPdfsByLead = async (req, res) => {
     res.status(200).json(enquiries.map(e => ({
       enquiryId: e.enquiryId,
       createdAt: e.createdAt,
-      pdfUrl: `/api/enquiry/pdf/${e._id}`,
+      pdfUrl: `/api/enquiry/pdf/${e.enquiryId}`,
     })));
   } catch (err) {
     res.status(500).json({ error: 'Server error', details: err.message });
