@@ -29,7 +29,9 @@ exports.createEnquiry = async (req, res) => {
 
     // Step 3: Create new enquiry linked to that lead
     const enquiry = await Enquiry.create({
+      enquiryId: `ENQ-${Date.now()}`,
       ...data,
+
       lead: lead._id,
     });
 
@@ -42,6 +44,7 @@ exports.createEnquiry = async (req, res) => {
     res.status(200).json({
       message: 'Enquiry submitted successfully ✅',
       enquiryId: enquiry._id,
+      leadId: lead._id,
     });
   } catch (err) {
     console.error('❌ Backend error:', err);
