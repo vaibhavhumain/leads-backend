@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const enquirySchema = new mongoose.Schema({
+  enquiryId: { type: String, required: true, unique: true },
   customerName: String,
   customerPhone: String,
   customerEmail: String,
