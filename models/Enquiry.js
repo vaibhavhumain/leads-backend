@@ -15,6 +15,7 @@ const enquirySchema = new mongoose.Schema({
   fitmentProvided: [String],
   pdfData: Buffer, 
   createdAt: { type: Date, default: Date.now },
+  lead: { type: mongoose.Schema.Types.ObjectId, ref: 'Lead' },
 });
 
 module.exports = mongoose.model('Enquiry', enquirySchema);
