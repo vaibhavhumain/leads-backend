@@ -5,7 +5,6 @@ const User = require('../models/User');
 exports.createLead = async (req, res) => {
   const { leadDetails } = req.body;
 
-  // At least one contact required!
   if (!leadDetails?.contacts || !Array.isArray(leadDetails.contacts) || leadDetails.contacts.length === 0) {
     return res.status(400).json({ message: 'At least one contact number is required' });
   }
@@ -24,7 +23,6 @@ exports.createLead = async (req, res) => {
     });
 
     await newLead.save();
-
     const populatedLead = await Lead.findById(newLead._id)
       .populate('createdBy', 'name email')
       .populate('forwardedTo.user', 'name email');
@@ -243,23 +241,26 @@ exports.bulkCreateLeads = async (req, res) => {
 
   try {
     const leadsWithCreator = leads.map((lead) => ({
-  leadDetails: {
-    companyName: lead.leadDetails?.companyName || '',
-    contact: lead.leadDetails?.contact || '',
-    location: lead.leadDetails?.location || '',
-    source: 'Excel Upload',
-    clientName: lead.leadDetails?.clientName || 'N/A',
-    email: lead.leadDetails?.email || '',
-  },
-  status: lead.status || 'Cold',
-  connectionStatus: lead.connectionStatus || 'Not Connected',
-  createdBy: req.user.id,
-  followUps: [],
-  forwardedTo: {},
-  isFrozen: false,
-  remarksHistory: [],
-}));
-
+      leadDetails: {
+        companyName: lead.leadDetails?.companyName || '',
+        contacts: lead.leadDetails?.contacts && Array.isArray(lead.leadDetails.contacts)
+          ? lead.leadDetails.contacts
+          : (lead.leadDetails?.contact
+            ? [{ number: lead.leadDetails.contact, label: 'Primary' }]
+            : []),
+        location: lead.leadDetails?.location || '',
+        source: 'Excel Upload',
+        clientName: lead.leadDetails?.clientName || 'N/A',
+        email: lead.leadDetails?.email || '',
+      },
+      status: lead.status || 'Cold',
+      connectionStatus: lead.connectionStatus || 'Not Connected',
+      createdBy: req.user.id,
+      followUps: [],
+      forwardedTo: {},
+      isFrozen: false,
+      remarksHistory: [],
+    }));
 
     const createdLeads = await Lead.insertMany(leadsWithCreator);
 
@@ -269,6 +270,7 @@ exports.bulkCreateLeads = async (req, res) => {
     res.status(500).json({ message: 'Error creating leads', error: error.message });
   }
 };
+
 
 // Update lead email
 exports.updateEmail = async (req, res) => {
@@ -303,13 +305,8 @@ exports.searchLeadsByPhone = async (req, res) => {
   }
 
   try {
-    console.log('🔍 Searching leads by phone:', phone);
-
     const query = {
-      $and: [
-        { leadDetails: { $exists: true, $ne: null } },
-        { 'leadDetails.contact': { $regex: phone, $options: 'i' } } // 🔧 fixed here
-      ]
+      'leadDetails.contacts.number': { $regex: phone, $options: 'i' }
     };
 
     const leads = await Lead.find(query)
@@ -317,18 +314,10 @@ exports.searchLeadsByPhone = async (req, res) => {
       .populate('forwardedTo.user', 'name email')
       .populate('remarksHistory.updatedBy', 'name');
 
-    console.log(`✅ Found ${leads.length} leads`);
     res.status(200).json(leads);
   } catch (error) {
-    console.error('🔥 REAL BACKEND ERROR in searchLeadsByPhone:', {
-      message: error.message,
-      stack: error.stack,
-    });
-
-    res.status(500).json({
-      message: 'Error searching leads',
-      error: error.message,
-    });
+    console.error('🔥 Error in searchLeadsByPhone:', error);
+    res.status(500).json({ message: 'Error searching leads', error: error.message });
   }
 };
 
