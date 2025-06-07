@@ -40,14 +40,14 @@ exports.createEnquiry = async (req, res) => {
 // ✅ NEW: Controller to serve the stored PDF
 exports.downloadEnquiryPdf = async (req, res) => {
   try {
-    const enquiry = await Enquiry.findById(req.params.id);
+    const enquiry = await Enquiry.findOne({ enquiryId: req.params.id }); 
 
     if (!enquiry || !enquiry.pdfData) {
       return res.status(404).json({ error: 'PDF not found' });
     }
 
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=enquiry-${enquiry._id}.pdf`);
+    res.setHeader('Content-Disposition', `attachment; filename=${enquiry.enquiryId}.pdf`);
     res.send(enquiry.pdfData);
   } catch (err) {
     console.error('❌ Download error:', err);
