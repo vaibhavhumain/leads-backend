@@ -476,3 +476,27 @@ exports.getMyLeads = async (req, res) => {
     res.status(500).json({ message: 'Error fetching user leads', error: error.message });
   }
 };
+
+
+// In leadController.js
+exports.updateContact = async (req, res) => {
+  const { id } = req.params;
+  const { contact } = req.body;
+
+  if (!contact || !contact.trim()) {
+    return res.status(400).json({ message: 'Contact is required' });
+  }
+
+  try {
+    const lead = await Lead.findById(id);
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+
+    lead.leadDetails.contact = contact.trim();
+    await lead.save();
+
+    res.status(200).json({ message: 'Contact updated', lead });
+  } catch (err) {
+    console.error('Error updating contact', err);
+    res.status(500).json({ message: 'Failed to update contact' });
+  }
+};
