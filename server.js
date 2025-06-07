@@ -3,6 +3,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 
+
 dotenv.config();
 connectDB();
 
@@ -37,6 +38,8 @@ const answerRoutes = require('./routes/answerRoutes');
 const enquiryRoutes = require('./routes/enquiryRoutes');
 const uploadRoute = require('./routes/upload');
 const sendRoute = require('./routes/send');
+const pauseLogRoutes = require('./routes/pauseLogs');
+
 
 // ✅ Route usage
 app.use('/api/auth', authRoutes);
@@ -46,6 +49,8 @@ app.use('/api/answers', answerRoutes);
 app.use('/api', enquiryRoutes);
 app.use('/api/upload', uploadRoute);
 app.use('/api/send', sendRoute);
+app.use('/api/pause-logs', pauseLogRoutes);
+
 
 // ✅ Root route
 app.get('/', (req, res) => {
