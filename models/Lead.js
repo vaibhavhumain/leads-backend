@@ -14,14 +14,19 @@ const forwardedToSchema = new mongoose.Schema({
 const leadSchema = new mongoose.Schema(
   {
     leadDetails: {
-      
   companyName: { type: String },
-  contact: { type: String }, 
   location: { type: String },
   clientName: { type: String, default: '' }, 
   source: { type: String }, 
   email: { type: String, default: '' },
+  contacts: [
+    {
+      number: { type: String, required: true },
+      label: { type: String, default: "Primary" } // Optional: label
+    }
+  ],
 },
+
   isFrozen: { type: Boolean, default: false },
   status: {
   type: String,

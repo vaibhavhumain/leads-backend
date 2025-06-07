@@ -5,18 +5,20 @@ const User = require('../models/User');
 exports.createLead = async (req, res) => {
   const { leadDetails } = req.body;
 
-  try {
-    if (!leadDetails?.contact) {
-      return res.status(400).json({ message: 'Contact number or email is required' });
-    }
+  // At least one contact required!
+  if (!leadDetails?.contacts || !Array.isArray(leadDetails.contacts) || leadDetails.contacts.length === 0) {
+    return res.status(400).json({ message: 'At least one contact number is required' });
+  }
 
+  try {
     const newLead = new Lead({
       leadDetails: {
         source: leadDetails.source || '',
-        clientName: leadDetails.clientName || 'N/A',  
-        contact: leadDetails.contact || '',
+        clientName: leadDetails.clientName || 'N/A',
+        contacts: leadDetails.contacts,
         companyName: leadDetails.companyName || '',
         location: leadDetails.location || '',
+        email: leadDetails.email || '',
       },
       createdBy: req.user.id,
     });
@@ -33,6 +35,7 @@ exports.createLead = async (req, res) => {
     res.status(500).json({ message: 'Error creating lead', error: error.message });
   }
 };
+
 
 // update Lead details
 exports.updateClientName = async (req, res) => {
@@ -479,24 +482,34 @@ exports.getMyLeads = async (req, res) => {
 
 
 // In leadController.js
-exports.updateContact = async (req, res) => {
-  const { id } = req.params;
-  const { contact } = req.body;
+// Add a new contact number to the lead
+exports.addContact = async (req, res) => {
+  const { id } = req.params; // leadId
+  const { number, label } = req.body;
 
-  if (!contact || !contact.trim()) {
-    return res.status(400).json({ message: 'Contact is required' });
+  if (!number || !number.trim()) {
+    return res.status(400).json({ message: 'Contact number is required' });
   }
 
   try {
     const lead = await Lead.findById(id);
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
 
-    lead.leadDetails.contact = contact.trim();
+    // Check for duplicates (optional)
+    const exists = lead.leadDetails.contacts.find(c => c.number === number.trim());
+    if (exists) {
+      return res.status(409).json({ message: 'Contact number already exists for this lead' });
+    }
+
+    lead.leadDetails.contacts.push({
+      number: number.trim(),
+      label: label || 'Alternate',
+    });
     await lead.save();
 
-    res.status(200).json({ message: 'Contact updated', lead });
+    res.status(200).json({ message: 'Contact added', lead });
   } catch (err) {
-    console.error('Error updating contact', err);
-    res.status(500).json({ message: 'Failed to update contact' });
+    console.error('Error adding contact', err);
+    res.status(500).json({ message: 'Failed to add contact' });
   }
 };
