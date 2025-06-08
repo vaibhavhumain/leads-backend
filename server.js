@@ -39,6 +39,8 @@ const enquiryRoutes = require('./routes/enquiryRoutes');
 const uploadRoute = require('./routes/upload');
 const sendRoute = require('./routes/send');
 const pauseLogRoutes = require('./routes/pauseLogs');
+const leadTimerLogsRoute = require('./routes/leadTimerLogs');
+
 
 
 // ✅ Route usage
@@ -50,7 +52,7 @@ app.use('/api', enquiryRoutes);
 app.use('/api/upload', uploadRoute);
 app.use('/api/send', sendRoute);
 app.use('/api/pause-logs', pauseLogRoutes);
-
+app.use('/api/timer-logs', leadTimerLogsRoute);
 
 // ✅ Root route
 app.get('/', (req, res) => {
