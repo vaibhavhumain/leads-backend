@@ -1,51 +1,44 @@
 // controllers/leadTimerLogController.js
 const LeadTimerLog = require('../models/LeadTimerLog');
 const Lead = require('../models/Lead');
-const User = require('../models/User');
 
 exports.saveLeadTimerLog = async (req, res) => {
   try {
-    const userId = req.user.id; // From auth middleware
-    const { leadId, startTime, stopTime, totalSeconds, pauseTimes = [] } = req.body;
-    if (!leadId || !startTime || !stopTime || typeof totalSeconds !== 'number') {
+    const userId = req.user.id;
+    const { leadId, leadName, stoppedByName, duration } = req.body;
+
+    // Validation
+    if (!leadId || !leadName || !stoppedByName || !duration) {
       return res.status(400).json({ message: 'Missing required fields.' });
     }
 
-    const lead = await Lead.findById(leadId).populate('createdBy');
-    if (!lead) return res.status(404).json({ message: 'Lead not found' });
-
-    const user = await User.findById(userId);
-
+    // Create log
     const log = await LeadTimerLog.create({
       lead: leadId,
-      leadName: lead.leadDetails?.clientName || 'N/A',
-      createdBy: lead.createdBy?._id,
+      leadName,
       stoppedBy: userId,
-      stoppedByName: user.name,
-      startTime,
-      stopTime,
-      pauseTimes,
-      totalSeconds,
+      stoppedByName,
+      duration,
     });
 
-    res.status(200).json({ message: 'Timer log saved', log });
+    res.status(200).json(log);
   } catch (err) {
-    res.status(500).json({ message: 'Failed to save timer log', error: err.message });
+    res.status(500).json({ message: 'Error saving timer log', error: err.message });
   }
 };
 
+// For admin to get all logs:
 exports.getAllLeadTimerLogs = async (req, res) => {
   try {
     if (req.user.role !== 'admin') return res.status(403).json({ message: 'Forbidden' });
 
     const logs = await LeadTimerLog.find()
-      .populate('lead', 'leadDetails')
-      .populate('createdBy', 'name')
+      .populate('lead', 'leadDetails.clientName')
       .populate('stoppedBy', 'name email')
       .sort({ createdAt: -1 });
 
     res.status(200).json(logs);
   } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch logs', error: err.message });
+    res.status(500).json({ message: 'Failed to load timer logs', error: err.message });
   }
 };
