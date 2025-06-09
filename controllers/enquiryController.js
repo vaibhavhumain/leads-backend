@@ -11,7 +11,6 @@ exports.createEnquiry = async (req, res) => {
       return res.status(400).json({ error: '`createdBy` is required' });
     }
 
-    // Require leadId from frontend
     const leadId = data.leadId;
     if (!leadId) {
       return res.status(400).json({ error: 'leadId is required! No lead will be created from enquiry form.' });
