@@ -11,36 +11,31 @@ exports.createEnquiry = async (req, res) => {
       return res.status(400).json({ error: '`createdBy` is required' });
     }
 
-    // Step 1: Check if lead already exists for this phone
-    let lead = await Lead.findOne({ 'leadDetails.contact': data.customerPhone });
-
-    // Step 2: If not found, create a new lead
-    if (!lead) {
-      lead = await Lead.create({
-        leadDetails: {
-          clientName: data.customerName,
-          contact: data.customerPhone,
-          email: data.customerEmail,
-        },
-        answers: data,
-        createdBy,
-      });
+    // Require leadId from frontend
+    const leadId = data.leadId;
+    if (!leadId) {
+      return res.status(400).json({ error: 'leadId is required! No lead will be created from enquiry form.' });
     }
 
-    // Step 3: Create new enquiry linked to that lead
+    // Find the existing lead
+    const lead = await Lead.findById(leadId);
+    if (!lead) {
+      return res.status(404).json({ error: 'Lead not found. Please re-import or refresh leads.' });
+    }
+
+    // Create new enquiry linked to that lead
     const enquiry = await Enquiry.create({
       enquiryId: `ENQ-${Date.now()}`,
       ...data,
-
       lead: lead._id,
     });
 
-    // Step 4: Generate PDF and attach it
+    // Generate PDF and attach it
     const pdfBuffer = await generateEnquiryPdf(enquiry);
     enquiry.pdfData = pdfBuffer;
     await enquiry.save();
 
-    // Step 5: Respond to frontend
+    // Respond to frontend
     res.status(200).json({
       message: 'Enquiry submitted successfully ✅',
       enquiryId: enquiry._id,
@@ -51,6 +46,8 @@ exports.createEnquiry = async (req, res) => {
     res.status(500).json({ error: 'Server error', details: err.message });
   }
 };
+
+
 
 // ✅ NEW: Controller to serve the stored PDF
 exports.downloadEnquiryPdf = async (req, res) => {
