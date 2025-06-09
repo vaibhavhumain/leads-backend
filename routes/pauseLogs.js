@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const pauseLogController = require('../controllers/pauseLogController');
-const { requireAuth } = require('../middleware/authMiddleware');
+const { protect } = require('../middleware/authMiddleware');
 
-router.post('/save', requireAuth, pauseLogController.savePauseLog);
-router.get('/all', requireAuth, pauseLogController.getAllPauseLogs);
-router.get('/mine', requireAuth, pauseLogController.getMyPauseLogs);
+router.post('/save', protect, pauseLogController.savePauseLog);
+router.get('/all', protect, pauseLogController.getAllPauseLogs);
+router.get('/mine', protect, pauseLogController.getMyPauseLogs);
 
 module.exports = router;
