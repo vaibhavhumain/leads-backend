@@ -17,7 +17,6 @@ exports.createEnquiry = async (req, res) => {
       return res.status(400).json({ error: 'leadId is required! No lead will be created from enquiry form.' });
     }
 
-    // Find the existing lead
     const lead = await Lead.findById(leadId);
     if (!lead) {
       return res.status(404).json({ error: 'Lead not found. Please re-import or refresh leads.' });
