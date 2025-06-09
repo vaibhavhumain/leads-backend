@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pauseLogController = require('../controllers/pauseLogController');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth } = require('../middleware/authMiddleware');
 
 router.post('/save', requireAuth, pauseLogController.savePauseLog);
 router.get('/all', requireAuth, pauseLogController.getAllPauseLogs);
