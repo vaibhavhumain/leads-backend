@@ -11,12 +11,13 @@ async function generateEnquiryPdf(enquiry) {
   const fontSize = 12;
   let y = height - 50;
 
-  // Optional: Add logo (must be a PNG/JPG buffer, adjust path as needed)
-  // const logoImage = fs.readFileSync(path.resolve(__dirname, '../public/logo.png'));
-  // const logo = await pdfDoc.embedPng(logoImage);
-  // page.drawImage(logo, { x: 40, y: y - 20, width: 80, height: 40 });
+  const logoImage = fs.readFileSync(path.resolve(__dirname, 'logo.png')); 
+const logo = await pdfDoc.embedPng(logoImage); 
+const pngDims = logo.scale(0.18); 
+page.drawImage(logo, { x: 40, y: height - 60, width: pngDims.width, height: pngDims.height });
+y = height - 90; 
 
-  // --- Header ---
+
   page.drawRectangle({
     x: 0, y: y + 15, width,
     height: 40, color: rgb(0.05, 0.24, 0.55),
