@@ -5,7 +5,6 @@ const followUpSchema = new mongoose.Schema({
   by: { type: mongoose.Schema.Types.ObjectId, ref: 'User' } // ✅ added
 });
 
-
 const forwardedToSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   forwardedAt: { type: Date, default: Date.now },
@@ -40,6 +39,22 @@ actionPlans: [
     addedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
   }
 ],
+
+activities: [
+  {
+    type: {
+      type: String,
+      enum: ['factory_visit', 'in_person_meeting'],
+      required: true
+    },
+    date: { type: Date, required: true },
+    conductedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    location: { type: String }, 
+    remarks: { type: String },
+    outcome: { type: String }
+  }
+],
+
 
 connectionStatus: {
   type: String,

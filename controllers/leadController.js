@@ -469,8 +469,6 @@ exports.getMyLeads = async (req, res) => {
   }
 };
 
-
-// In leadController.js
 // Add a new contact number to the lead
 exports.addContact = async (req, res) => {
   const { id } = req.params; // leadId
@@ -500,5 +498,53 @@ exports.addContact = async (req, res) => {
   } catch (err) {
     console.error('Error adding contact', err);
     res.status(500).json({ message: 'Failed to add contact' });
+  }
+};
+
+// Add an activity (factory visit or in-person meeting)
+exports.addActivity = async (req, res) => {
+  const { leadId } = req.params;
+  const { type, date, location, remarks, outcome } = req.body;
+
+  if (!['factory_visit', 'in_person_meeting'].includes(type)) {
+    return res.status(400).json({ message: 'Invalid activity type' });
+  }
+  if (!date) {
+    return res.status(400).json({ message: 'Activity date is required' });
+  }
+  try {
+    const lead = await Lead.findById(leadId);
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+
+    lead.activities.push({
+      type,
+      date,
+      conductedBy: req.user._id, // Automatically log in the logged-in user
+      location,
+      remarks,
+      outcome,
+    });
+    await lead.save();
+
+    // Optionally populate for response
+    await lead.populate('activities.conductedBy', 'name email');
+    res.status(200).json({ message: 'Activity added', activities: lead.activities });
+  } catch (err) {
+    console.error('Error adding activity:', err);
+    res.status(500).json({ message: 'Error adding activity', error: err.message });
+  }
+};
+
+// Get all activities for a lead
+exports.getActivities = async (req, res) => {
+  const { leadId } = req.params;
+  try {
+    const lead = await Lead.findById(leadId).populate('activities.conductedBy', 'name email');
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+
+    res.status(200).json({ activities: lead.activities });
+  } catch (err) {
+    console.error('Error fetching activities:', err);
+    res.status(500).json({ message: 'Error fetching activities', error: err.message });
   }
 };
