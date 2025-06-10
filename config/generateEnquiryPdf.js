@@ -1,94 +1,154 @@
 const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
+const fs = require('fs');
+const path = require('path');
 
 async function generateEnquiryPdf(enquiry) {
   const pdfDoc = await PDFDocument.create();
   let page = pdfDoc.addPage();
   const { width, height } = page.getSize();
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   const fontSize = 12;
-  let y = height - 40;
+  let y = height - 50;
 
-  const drawText = (label, value) => {
-    page.drawText(`${label}: ${value || '-'}`, {
-      x: 40,
-      y: y,
-      size: fontSize,
-      font,
-      color: rgb(0, 0, 0),
+  // Optional: Add logo (must be a PNG/JPG buffer, adjust path as needed)
+  // const logoImage = fs.readFileSync(path.resolve(__dirname, '../public/logo.png'));
+  // const logo = await pdfDoc.embedPng(logoImage);
+  // page.drawImage(logo, { x: 40, y: y - 20, width: 80, height: 40 });
+
+  // --- Header ---
+  page.drawRectangle({
+    x: 0, y: y + 15, width,
+    height: 40, color: rgb(0.05, 0.24, 0.55),
+  });
+  page.drawText('GOBIND COACH BUILDERS', {
+    x: 50, y: y + 25, size: 22, font: boldFont, color: rgb(1, 1, 1),
+  });
+  page.drawText('Enquiry Form', {
+    x: width - 180, y: y + 25, size: 16, font: boldFont, color: rgb(1, 1, 1),
+  });
+
+  y -= 35;
+
+  // Helper: Draw section header
+  function section(title) {
+    y -= 30;
+    page.drawRectangle({
+      x: 30, y: y + 8, width: width - 60, height: 24,
+      color: rgb(0.87, 0.92, 1)
     });
-    y -= 20;
-    if (y < 50) {
-      y = height - 40;
-      page = pdfDoc.addPage();
-    }
-  };
+    page.drawText(title, {
+      x: 38, y: y + 12,
+      size: 14, font: boldFont, color: rgb(0.09, 0.33, 0.68),
+    });
+    y -= 6;
+  }
 
-  // 🧾 Basic Info
-  drawText('Enquiry ID', enquiry.enquiryId);
-  drawText('Team Member', enquiry.teamMember);
-  drawText('Customer Name', enquiry.customerName);
-  drawText('Company Details', enquiry.companyDetails);
-  drawText('Address', enquiry.address);
-  drawText('City', enquiry.city);
-  drawText('State', enquiry.state);
-  drawText('Pincode', enquiry.pincode);
-  drawText('Phone', enquiry.customerPhone);
-  drawText('Email', enquiry.customerEmail);
+  // Helper: Draw a label and value
+  function field(label, value) {
+    if (y < 60) { y = height - 70; page = pdfDoc.addPage(); }
+    page.drawText(`${label}:`, {
+      x: 42, y, size: fontSize, font: boldFont, color: rgb(0.18, 0.18, 0.18)
+    });
+    page.drawText(`${value || '-'}`, {
+      x: 160, y, size: fontSize, font, color: rgb(0.18, 0.18, 0.18)
+    });
+    y -= 18;
+  }
 
-  // 🚌 Bus Info
-  drawText('Bus Type', enquiry.busType);
-  drawText('Other Bus Type', enquiry.otherBusType);
-  drawText('Feature Requirement', enquiry.featureRequirement);
-  drawText('AC Preference', enquiry.acPreference);
-  drawText('Referral Source', enquiry.referralSource);
+  // --- BASIC INFO ---
+  section('Basic Information');
+  field('Enquiry ID', enquiry.enquiryId);
+  field('Team Member', enquiry.teamMember);
+  field('Customer Name', enquiry.customerName);
+  field('Company', enquiry.companyDetails);
+  field('Phone', enquiry.customerPhone);
+  field('Email', enquiry.customerEmail);
+  field('Address', `${enquiry.address || ''} ${enquiry.city || ''}, ${enquiry.state || ''} - ${enquiry.pincode || ''}`);
 
-  // 🚛 Chassis Info
-  drawText('Chassis Bought', enquiry.chassisBought);
-  drawText('Chassis Purchase Time', enquiry.chassisPurchaseTime);
-  drawText('Chassis Company Name', enquiry.chassisCompanyName);
-  drawText('Chassis Model', enquiry.chassisModel);
-  drawText('Wheel Base', enquiry.wheelBase);
-  drawText('Tyre Size', enquiry.tyreSize);
-  drawText('Length', enquiry.length);
-  drawText('Width', enquiry.width);
+  // --- BUSINESS/PERSONAL INFO ---
+  section('Business & Personal Details');
+  field('Type of Buses in Fleet', enquiry.businessTypeOfBuses);
+  field('No. of Buses', enquiry.businessNumberOfBuses);
+  field('Previous Body Builder', enquiry.businessPreviousBodyBuilder);
+  field('Buses per Year', enquiry.businessBusesPerYear);
+  field('Employees', enquiry.businessEmployees);
+  field('Expertise Area', enquiry.businessExpertiseArea);
+  field('Education', enquiry.education);
+  field('Hobbies', enquiry.hobbies);
+  field('Behavior', enquiry.behavior);
+  field('Customer Type', enquiry.customerType);
 
-  // 🪑 Seating
-  drawText('Seating Pattern', enquiry.seatingPattern);
-  drawText('Number of Seats', enquiry.numberOfSeats);
-  drawText('Total Seats', enquiry.totalSeats);
+  // --- BUS REQUIREMENT ---
+  section('Bus Requirement');
+  field('Bus Type', enquiry.busType);
+  field('Other Bus Type', enquiry.otherBusType);
+  field('Feature Requirement', enquiry.featureRequirement);
+  field('AC Preference', enquiry.acPreference);
+  field('Referral Source', enquiry.referralSource);
 
-  // 📝 Notes
-  drawText('Additional Note', enquiry.additionalNote);
+  // --- CHASSIS INFO ---
+  section('Chassis & Dimensions');
+  field('Chassis Bought', enquiry.chassisBought);
+  field('Chassis Purchase Time', enquiry.chassisPurchaseTime);
+  field('Chassis Company', enquiry.chassisCompanyName);
+  field('Chassis Model', enquiry.chassisModel);
+  field('Wheel Base', enquiry.wheelBase);
+  field('Tyre Size', enquiry.tyreSize);
+  field('Length', enquiry.length);
+  field('Width', enquiry.width);
 
-  // 💎 Luxury Section
-  drawText('Window Type', enquiry.windowType);
-  drawText('Required No Each Side', enquiry.requiredNoEachSide);
-  drawText('Tint of Shades', enquiry.tintOfShades);
-  drawText('Other Tint', enquiry.otherTint);
-  drawText('Seat Type', enquiry.seatType);
-  drawText('Seat Material', enquiry.seatMaterial);
-  drawText('Curtain', enquiry.curtain);
-  drawText('Flooring Type', enquiry.flooringType);
-  drawText('Passenger Doors', enquiry.passengerDoors);
-  drawText('Passenger Door Position', enquiry.passengerDoorPosition);
-  drawText('Door Type', enquiry.doorType);
-  drawText('Roof Carrier', enquiry.roofCarrier);
-  drawText('Diggy Type', enquiry.diggyType);
-  drawText('Side Luggage Required', enquiry.sideLuggageReq);
-  drawText('Diggy Flooring', enquiry.diggyFlooring);
-  drawText('Side Ladder', enquiry.sideLadder);
-  drawText('Helper Foot Step', enquiry.helperFootStep);
-  drawText('Rear Back Jaal', enquiry.rearBackJaal);
-  drawText('Cabin Type', enquiry.cabinType);
-  drawText('Specific Requirement', enquiry.specificRequirement);
-  drawText('Suggested Model', enquiry.suggestedModel);
-  drawText('Seat Belt', enquiry.seatBelt);
-  drawText('Seat Belt Type', enquiry.seatBeltType);
+  // --- SEATING ---
+  section('Seating');
+  field('Seating Pattern', enquiry.seatingPattern);
+  field('Number of Seats', enquiry.numberOfSeats);
+  field('Total Seats', enquiry.totalSeats);
 
-  // 📦 Arrays
-  drawText('Optional Features', (enquiry.optionalFeatures || []).join(', '));
-  drawText('Fitment Provided', (enquiry.fitmentProvided || []).join(', '));
+  // --- LUXURY / FITMENT ---
+  section('Luxury / Fitment');
+  field('Window Type', enquiry.windowType);
+  field('Required No Each Side', enquiry.requiredNoEachSide);
+  field('Tint of Shades', enquiry.tintOfShades);
+  field('Other Tint', enquiry.otherTint);
+  field('Seat Type', enquiry.seatType);
+  field('Seat Material', enquiry.seatMaterial);
+  field('Curtain', enquiry.curtain);
+  field('Flooring Type', enquiry.flooringType);
+  field('Passenger Doors', enquiry.passengerDoors);
+  field('Passenger Door Position', enquiry.passengerDoorPosition);
+  field('Door Type', enquiry.doorType);
+  field('Roof Carrier', enquiry.roofCarrier);
+  field('Diggy Type', enquiry.diggyType);
+  field('Side Luggage Required', enquiry.sideLuggageReq);
+  field('Diggy Flooring', enquiry.diggyFlooring);
+  field('Side Ladder', enquiry.sideLadder);
+  field('Helper Foot Step', enquiry.helperFootStep);
+  field('Rear Back Jaal', enquiry.rearBackJaal);
+  field('Cabin Type', enquiry.cabinType);
+  field('Specific Requirement', enquiry.specificRequirement);
+  field('Suggested Model', enquiry.suggestedModel);
+  field('Seat Belt', enquiry.seatBelt);
+  field('Seat Belt Type', enquiry.seatBeltType);
 
+  // --- ARRAYS / EXTRAS ---
+  section('Features & Fitments');
+  field('Optional Features', (enquiry.optionalFeatures || []).join(', '));
+  field('Fitment Provided', (enquiry.fitmentProvided || []).join(', '));
+
+  // --- NOTES ---
+  section('Additional Notes');
+  field('Note', enquiry.additionalNote);
+
+  // --- Footer ---
+  y -= 20;
+  page.drawLine({
+    start: { x: 35, y }, end: { x: width - 35, y }, thickness: 1, color: rgb(0.8, 0.8, 0.8)
+  });
+  page.drawText('Generated by Gobind Coach Builders Enquiry System', {
+    x: 40, y: y - 15, size: 10, font, color: rgb(0.5, 0.5, 0.5),
+  });
+
+  // Output PDF
   const pdfBytes = await pdfDoc.save();
   return Buffer.from(pdfBytes);
 }
