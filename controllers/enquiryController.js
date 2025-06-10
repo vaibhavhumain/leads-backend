@@ -1,6 +1,7 @@
 const Lead = require('../models/Lead');
 const Enquiry = require('../models/Enquiry');
 const generateEnquiryPdf = require('../config/generateEnquiryPdf');
+const notifyAllExceptAdmin = require('../config/createNotifications');
 
 exports.createEnquiry = async (req, res) => {
   try {
@@ -33,6 +34,12 @@ exports.createEnquiry = async (req, res) => {
     enquiry.pdfData = pdfBuffer;
     await enquiry.save();
 
+    // ✅ Send in-app notification to all users except admin
+    await notifyAllExceptAdmin(
+      `A new enquiry (${enquiry.enquiryId}) has been created for lead "${lead.clientName || lead.name}" by ${req.user?.name || 'a user'}.`,
+      `/leadDetails?leadId=${lead._id}`
+    );
+
     // Respond to frontend
     res.status(200).json({
       message: 'Enquiry submitted successfully ✅',
@@ -45,9 +52,7 @@ exports.createEnquiry = async (req, res) => {
   }
 };
 
-
-
-// ✅ NEW: Controller to serve the stored PDF
+// ✅ Controller to serve the stored PDF
 exports.downloadEnquiryPdf = async (req, res) => {
   try {
     const enquiry = await Enquiry.findOne({ enquiryId: req.params.id }); 
@@ -64,7 +69,6 @@ exports.downloadEnquiryPdf = async (req, res) => {
     res.status(500).json({ error: 'Server error', details: err.message });
   }
 };
-
 
 exports.getAllPdfsByLead = async (req, res) => {
   try {

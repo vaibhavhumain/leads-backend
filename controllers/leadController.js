@@ -1,5 +1,6 @@
 const Lead = require('../models/Lead');
 const User = require('../models/User');
+const notifyAllExceptAdmin = require('../config/createNotifications');
 
 // Create a new led
 exports.createLead = async (req, res) => {
@@ -27,12 +28,18 @@ exports.createLead = async (req, res) => {
       .populate('createdBy', 'name email')
       .populate('forwardedTo.user', 'name email');
 
+    await notifyAllExceptAdmin(
+      `New lead "${newLead.leadDetails.clientName}" created by ${req.user.name}.`,
+      `/leadDetails?leadId=${newLead._id}`
+    );
+
     res.status(201).json({ message: 'Lead created successfully', lead: populatedLead });
   } catch (error) {
     console.error('Error creating lead:', error);
     res.status(500).json({ message: 'Error creating lead', error: error.message });
   }
 };
+
 
 
 // update Lead details
@@ -51,20 +58,22 @@ exports.updateClientName = async (req, res) => {
     lead.leadDetails.clientName = clientName.trim();
     await lead.save();
 
+    // 🚩 Notify about name change
+    await notifyAllExceptAdmin(
+      `Client name updated for lead "${lead.leadDetails.clientName}".`,
+      `/leadDetails?leadId=${lead._id}`
+    );
+
     res.status(200).json({ message: 'Client name updated', lead });
   } catch (err) {
     console.error('Error updating client name:', err);
     res.status(500).json({ message: 'Failed to update client name' });
   }
 };
-
 // Forward lead to another user
 exports.forwardLead = async (req, res) => {
   const { leadId, userId } = req.body;
   const loggedInUser = req.user;
-
-  console.log("➡️ Forwarding leadId:", leadId, "to userId:", userId);
-  console.log("➡️ Logged in user:", loggedInUser?.email);
 
   if (!loggedInUser || !loggedInUser.email) {
     return res.status(401).json({ message: 'User not logged in or email not found' });
@@ -72,8 +81,6 @@ exports.forwardLead = async (req, res) => {
 
   try {
     const lead = await Lead.findById(leadId);
-    console.log("✅ Fetched lead:", lead?._id);
-
     if (!lead) {
       return res.status(404).json({ message: 'Lead not found' });
     }
@@ -83,7 +90,7 @@ exports.forwardLead = async (req, res) => {
       return res.status(404).json({ message: 'Receiver user not found or email not available' });
     }
 
-    // ✅ Only assign forwardedTo and freeze access
+    // Assign forwardedTo and freeze access
     lead.forwardedTo = {
       user: userId,
       forwardedAt: new Date(),
@@ -94,6 +101,12 @@ exports.forwardLead = async (req, res) => {
     const updatedLead = await Lead.findById(leadId)
       .populate('createdBy', 'name email')
       .populate('forwardedTo.user', 'name email');
+
+    // 🚩 Notify about forwarding
+    await notifyAllExceptAdmin(
+      `Lead "${lead.leadDetails.clientName}" forwarded to ${receiver.name} by ${loggedInUser.name}.`,
+      `/leadDetails?leadId=${lead._id}`
+    );
 
     res.status(200).json({ message: 'Lead forwarded successfully', lead: updatedLead });
 
@@ -106,6 +119,7 @@ exports.forwardLead = async (req, res) => {
     res.status(500).json({ message: 'Error forwarding lead', error: error.message });
   }
 };
+
 
 // Add a follow-up call
 exports.addFollowUp = async (req, res) => {
@@ -124,12 +138,18 @@ exports.addFollowUp = async (req, res) => {
       return res.status(400).json({ message: 'Invalid date format' });
     }
     lead.followUps.push({
-  date: followUpDate,
-  notes: followUp.notes,
-  by: req.user._id  // ✅ Add this line
-});
+      date: followUpDate,
+      notes: followUp.notes,
+      by: req.user._id
+    });
 
     await lead.save();
+
+    // 🚩 Notify about follow-up
+    await notifyAllExceptAdmin(
+      `Follow-up added for lead "${lead.leadDetails.clientName}" by ${req.user.name}.`,
+      `/leadDetails?leadId=${lead._id}`
+    );
 
     res.status(200).json({ message: 'Follow-up added successfully', lead });
   } catch (error) {
@@ -159,13 +179,18 @@ exports.saveActionPlan = async (req, res) => {
 
     const updatedLead = await Lead.findById(leadId).populate('actionPlans.addedBy', 'name');
 
+    // 🚩 Notify about new action plan
+    await notifyAllExceptAdmin(
+      `Action Plan/Remarks added for lead "${lead.leadDetails.clientName}" by ${req.user.name}.`,
+      `/leadDetails?leadId=${lead._id}`
+    );
+
     res.status(200).json({ message: 'Action Plan saved', actionPlans: updatedLead.actionPlans });
   } catch (error) {
     console.error('Error saving action plan:', error);
     res.status(500).json({ message: 'Failed to save action plan', error: error.message });
   }
 };
-
 
 // Get Action Plans for a lead
 exports.getActionPlans = async (req, res) => {
@@ -263,7 +288,10 @@ exports.bulkCreateLeads = async (req, res) => {
     }));
 
     const createdLeads = await Lead.insertMany(leadsWithCreator);
-
+    await notifyAllExceptAdmin(
+      `${createdLeads.length} leads uploaded in bulk by ${req.user.name}.`,
+      `/dashboard`
+    );
     res.status(201).json({ message: 'Leads created successfully', leads: createdLeads });
   } catch (error) {
     console.error('Error bulk-creating leads:', error);
@@ -356,7 +384,7 @@ exports.updateLeadStatus = async (req, res) => {
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
 
     lead.status = status;
-     if (remarks) {
+    if (remarks) {
       lead.remarks = remarks;
       lead.date = date || new Date();
 
@@ -370,6 +398,12 @@ exports.updateLeadStatus = async (req, res) => {
       lead.isFrozen = false;
     }
     await lead.save();
+
+    // 🚩 Notify about status change
+    await notifyAllExceptAdmin(
+      `Status of lead "${lead.leadDetails.clientName}" changed to "${status}" by ${req.user.name}.`,
+      `/leadDetails?leadId=${lead._id}`
+    );
 
     res.status(200).json({ message: 'Lead status updated successfully', lead });
   } catch (error) {
@@ -410,7 +444,6 @@ exports.deleteAllLeads = async (req, res) => {
 exports.updateConnectionStatus = async (req, res) => {
   const { id } = req.params;
   const { connectionStatus } = req.body;
-  console.log('🟡 Received:', { id, connectionStatus });
   if (!['Connected', 'Not Connected'].includes(connectionStatus)) {
     return res.status(400).json({ message: 'Invalid connection status' });
   }
@@ -422,14 +455,18 @@ exports.updateConnectionStatus = async (req, res) => {
     lead.connectionStatus = connectionStatus;
     await lead.save();
 
+    // 🚩 Notify about connection status
+    await notifyAllExceptAdmin(
+      `Connection status of lead "${lead.leadDetails.clientName}" updated to "${connectionStatus}" by ${req.user.name}.`,
+      `/leadDetails?leadId=${lead._id}`
+    );
+
     res.status(200).json({ message: 'Connection status updated', lead });
   } catch (error) {
     console.error('Error updating connection status:', error);
     res.status(500).json({ message: 'Error updating connection status', error: error.message });
   }
 };
-
-
 // Get leads forwarded TO the logged-in user
 exports.getForwardedLeadsToMe = async (req, res) => {
   try {
@@ -494,6 +531,12 @@ exports.addContact = async (req, res) => {
     });
     await lead.save();
 
+    // 🚩 Notify about contact add
+    await notifyAllExceptAdmin(
+      `Contact "${number.trim()}" added to lead "${lead.leadDetails.clientName}" by ${req.user.name}.`,
+      `/leadDetails?leadId=${lead._id}`
+    );
+
     res.status(200).json({ message: 'Contact added', lead });
   } catch (err) {
     console.error('Error adding contact', err);
@@ -519,22 +562,27 @@ exports.addActivity = async (req, res) => {
     lead.activities.push({
       type,
       date,
-      conductedBy: req.user._id, // Automatically log in the logged-in user
+      conductedBy: req.user._id,
       location,
       remarks,
       outcome,
     });
     await lead.save();
 
-    // Optionally populate for response
     await lead.populate('activities.conductedBy', 'name email');
+
+    // 🚩 Notify about activity
+    await notifyAllExceptAdmin(
+      `Activity "${type.replace('_', ' ')}" added for lead "${lead.leadDetails.clientName}" by ${req.user.name}.`,
+      `/leadDetails?leadId=${lead._id}`
+    );
+
     res.status(200).json({ message: 'Activity added', activities: lead.activities });
   } catch (err) {
     console.error('Error adding activity:', err);
     res.status(500).json({ message: 'Error adding activity', error: err.message });
   }
 };
-
 // Get all activities for a lead
 exports.getActivities = async (req, res) => {
   const { leadId } = req.params;
