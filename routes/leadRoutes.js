@@ -19,6 +19,8 @@ const {
   updateConnectionStatus,
   bulkCreateLeads,
   addContact,
+  addActivity,
+  getActivities,
 } = require('../controllers/leadController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -30,6 +32,8 @@ router.get('/all', protect, getAllLeads);
 router.get('/forwarded-to-me', protect, getForwardedLeadsToMe);
 router.get('/search', protect, searchLeadsByPhone);
 router.get('/:leadId/actionPlans', protect, getActionPlans);
+router.get('/:leadId/activities',protect , getActivities);
+
 
 // ✅ Lead creation & update
 router.post('/create', protect, createLead);
@@ -38,7 +42,7 @@ router.post('/followup', protect, addFollowUp);
 router.post('/bulk', protect, bulkCreateLeads);
 router.post('/saveActionPlan', protect, saveActionPlan);
 router.post('/:id/add-contact', protect, addContact);
-
+router.post('/:leadId/activities',protect , addActivity);
 
 // ✅ Updates
 router.put('/:id/email', protect, updateEmail);
