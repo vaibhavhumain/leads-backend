@@ -1,6 +1,7 @@
 // controllers/leadTimerLogController.js
 const LeadTimerLog = require('../models/LeadTimerLog');
 const Lead = require('../models/Lead');
+const notifyAllExceptAdmin = require('../config/createNotifications');
 
 exports.saveLeadTimerLog = async (req, res) => {
   try {
@@ -20,6 +21,12 @@ exports.saveLeadTimerLog = async (req, res) => {
       stoppedByName,
       duration,
     });
+
+    // 🚩 Send in-app notification
+    await notifyAllExceptAdmin(
+      `Timer stopped for lead "${leadName}" by ${stoppedByName}. Duration: ${duration}`,
+      `/leadDetails?leadId=${leadId}`
+    );
 
     res.status(200).json(log);
   } catch (err) {

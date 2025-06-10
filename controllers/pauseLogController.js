@@ -1,11 +1,11 @@
-// controllers/pauseLogController.js
-
 const PauseLog = require('../models/PauseLog');
+const notifyAllExceptAdmin = require('../config/createNotifications');
 
 // Save a pause or resume action
 exports.savePauseLog = async (req, res) => {
   try {
     const userId = req.user.id;
+    const userName = req.user.name;
     const { pausedAt, resumedAt, pausedDuration } = req.body;
 
     if (!pausedAt && !resumedAt) {
@@ -16,16 +16,26 @@ exports.savePauseLog = async (req, res) => {
     if (resumedAt) {
       // Resume: update the last open pause log
       log = await PauseLog.findOneAndUpdate(
-        { user: userId, resumedAt: null }, // Find the most recent un-resumed pause
+        { user: userId, resumedAt: null },
         { resumedAt, pausedDuration },
         { new: true }
       );
       if (!log) {
         return res.status(404).json({ message: 'No matching pause log to resume' });
       }
+      // 🚩 Send in-app notification for resume
+      await notifyAllExceptAdmin(
+        `Timer resumed by ${userName}. Paused Duration: ${pausedDuration || 0} min.`,
+        null
+      );
     } else {
       // Pause: create a new log
       log = await PauseLog.create({ user: userId, pausedAt });
+      // 🚩 Send in-app notification for pause
+      await notifyAllExceptAdmin(
+        `Timer paused by ${userName} at ${new Date(pausedAt).toLocaleTimeString()}.`,
+        null
+      );
     }
 
     res.status(200).json(log);
