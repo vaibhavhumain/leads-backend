@@ -11,13 +11,39 @@ async function generateEnquiryPdf(enquiry) {
   const fontSize = 12;
   let y = height - 50;
 
-  const logoImage = fs.readFileSync(path.resolve(__dirname, 'logo.png')); 
-const logo = await pdfDoc.embedPng(logoImage); 
-const pngDims = logo.scale(0.18); 
-page.drawImage(logo, { x: 40, y: height - 60, width: pngDims.width, height: pngDims.height });
-y = height - 90; 
+  // --- 1. Embed logo image (used for both small logo and watermark) ---
+  const logoPath = path.resolve(__dirname, 'logo.png'); // Use .jpg if that's your logo
+  let logo, logoDims;
+  try {
+    const logoImage = fs.readFileSync(logoPath);
+    logo = await pdfDoc.embedPng(logoImage); // embedJpg if your logo is JPG
 
+    // --- 2. Draw watermark logo (centered, large, transparent) ---
+    const wmWidth = width * 0.7;
+    const wmHeight = logo.height * (wmWidth / logo.width);
+    page.drawImage(logo, {
+      x: (width - wmWidth) / 2,
+      y: (height - wmHeight) / 2,
+      width: wmWidth,
+      height: wmHeight,
+      opacity: 0.13, // transparent!
+    });
 
+    // --- 3. Draw small logo at top left (optional) ---
+    const smallDims = logo.scale(0.18);
+    page.drawImage(logo, {
+      x: 40,
+      y: height - 60,
+      width: smallDims.width,
+      height: smallDims.height,
+    });
+    y = height - 90;
+  } catch (e) {
+    console.warn('Logo image not found or failed to embed:', e.message);
+    y = height - 50;
+  }
+
+  // --- Header ---
   page.drawRectangle({
     x: 0, y: y + 15, width,
     height: 40, color: rgb(0.05, 0.24, 0.55),
