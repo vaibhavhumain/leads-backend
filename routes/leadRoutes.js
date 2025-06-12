@@ -21,6 +21,7 @@ const {
   addContact,
   addActivity,
   getActivities,
+  getAllActivities,
 } = require('../controllers/leadController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -33,7 +34,7 @@ router.get('/forwarded-to-me', protect, getForwardedLeadsToMe);
 router.get('/search', protect, searchLeadsByPhone);
 router.get('/:leadId/actionPlans', protect, getActionPlans);
 router.get('/:leadId/activities',protect , getActivities);
-
+router.get('/all-activities',protect,admin,getAllActivities);
 
 // ✅ Lead creation & update
 router.post('/create', protect, createLead);
@@ -54,9 +55,9 @@ router.put('/:id/connection-status', protect, updateConnectionStatus);
 // ✅ Deletion
 router.delete('/:id', protect, deleteLead);
 router.delete('/', protect, deleteAllLeads);
-
+ 
 // ✅ General get (keep last)
 router.get('/', protect, getLeads);
-router.get('/:id', protect, getLeadById); // <-- must be last to avoid shadowing others
+router.get('/:id', protect, getLeadById);
 
 module.exports = router;
