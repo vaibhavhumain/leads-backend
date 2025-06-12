@@ -23,11 +23,14 @@ exports.createEnquiry = async (req, res) => {
     }
 
     // Create new enquiry linked to that lead
-    const enquiry = await Enquiry.create({
-      enquiryId: `ENQ-${Date.now()}`,
-      ...data,
-      lead: lead._id,
-    });
+    // Always use authenticated user's id as createdBy, not from client
+const enquiry = await Enquiry.create({
+  enquiryId: `ENQ-${Date.now()}`,
+  ...data,
+  lead: lead._id,
+  createdBy: req.user._id,  // Always set here!
+});
+
 
     // Generate PDF and attach it
     const pdfBuffer = await generateEnquiryPdf(enquiry);
@@ -55,10 +58,17 @@ exports.createEnquiry = async (req, res) => {
 // ✅ Controller to serve the stored PDF
 exports.downloadEnquiryPdf = async (req, res) => {
   try {
-    const enquiry = await Enquiry.findOne({ enquiryId: req.params.id }); 
+    const enquiry = await Enquiry.findOne({ enquiryId: req.params.id });
 
+    // Secure: Only allow if admin or the creator
     if (!enquiry || !enquiry.pdfData) {
       return res.status(404).json({ error: 'PDF not found' });
+    }
+    if (
+      (!req.user || req.user.role !== 'admin') &&
+      enquiry.createdBy.toString() !== req.user._id.toString()
+    ) {
+      return res.status(403).json({ error: 'Forbidden: You do not have access to this PDF' });
     }
 
     res.setHeader('Content-Type', 'application/pdf');
@@ -72,7 +82,14 @@ exports.downloadEnquiryPdf = async (req, res) => {
 
 exports.getAllPdfsByLead = async (req, res) => {
   try {
-    const enquiries = await Enquiry.find({ lead: req.params.leadId });
+    let query = { lead: req.params.leadId };
+
+    // Only allow admin to see all, otherwise filter by user
+    if (!req.user || req.user.role !== 'admin') {
+      query.createdBy = req.user._id;
+    }
+
+    const enquiries = await Enquiry.find(query);
 
     if (!enquiries.length) return res.status(404).json({ error: 'No enquiries found' });
 

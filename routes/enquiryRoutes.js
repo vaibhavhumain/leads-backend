@@ -5,7 +5,7 @@ const { createEnquiry, downloadEnquiryPdf , getAllPdfsByLead} = require('../cont
 
 router.post('/enquiry', createEnquiry);
 
-router.get('/enquiry/pdf/:id', downloadEnquiryPdf);
+router.get('/enquiry/pdf/:id',protect, downloadEnquiryPdf);
 
 router.get('/enquiry/all-pdfs/:leadId', protect , getAllPdfsByLead);
 
