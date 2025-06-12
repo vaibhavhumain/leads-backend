@@ -23,7 +23,7 @@ const {
   getActivities,
   getAllActivities,
 } = require('../controllers/leadController');
-const { protect } = require('../middleware/authMiddleware');
+const { protect , admin } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
