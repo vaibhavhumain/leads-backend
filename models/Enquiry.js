@@ -81,6 +81,7 @@ const enquirySchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
+  },
 });
 
 module.exports = mongoose.model('Enquiry', enquirySchema);
