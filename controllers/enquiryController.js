@@ -2,7 +2,7 @@ const Lead = require('../models/Lead');
 const Enquiry = require('../models/Enquiry');
 const generateEnquiryPdf = require('../config/generateEnquiryPdf');
 const notifyAllExceptAdmin = require('../config/createNotifications');
-
+const mongoose = require("mongoose");
 exports.createEnquiry = async (req, res) => {
   try {
     const data = req.body;
@@ -80,32 +80,37 @@ exports.downloadEnquiryPdf = async (req, res) => {
   }
 };
 
-const mongoose = require('mongoose');
-
 exports.getAllPdfsByLead = async (req, res) => {
   try {
-    let leadObjectId;
-    try {
-      leadObjectId = mongoose.Types.ObjectId(req.params.leadId);
-    } catch (e) {
+    const leadIdParam = req.params.leadId;
+
+    // Log for debugging
+    console.log('[getAllPdfsByLead] leadId param:', leadIdParam);
+
+    if (!mongoose.Types.ObjectId.isValid(leadIdParam)) {
       return res.status(400).json({ error: 'Invalid leadId format' });
     }
-    let query = { lead: leadObjectId };
+    const leadObjectId = new mongoose.Types.ObjectId(leadIdParam);
 
+    let query = { lead: leadObjectId };
     if (!req.user || req.user.role !== 'admin') {
       query.createdBy = req.user._id;
     }
 
     const enquiries = await Enquiry.find(query);
+    if (!enquiries.length) {
+      return res.status(404).json({ error: 'No enquiries found' });
+    }
 
-    if (!enquiries.length) return res.status(404).json({ error: 'No enquiries found' });
-
-    res.status(200).json(enquiries.map(e => ({
-      enquiryId: e.enquiryId,
-      createdAt: e.createdAt,
-      pdfUrl: `/api/enquiry/pdf/${e.enquiryId}`,
-    })));
+    res.status(200).json(
+      enquiries.map(e => ({
+        enquiryId: e.enquiryId,
+        createdAt: e.createdAt,
+        pdfUrl: `/api/enquiry/pdf/${e.enquiryId}`,
+      }))
+    );
   } catch (err) {
+    console.error('❌ getAllPdfsByLead error:', err);
     res.status(500).json({ error: 'Server error', details: err.message });
   }
 };
