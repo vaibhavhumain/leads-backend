@@ -7,7 +7,7 @@ const enquirySchema = new mongoose.Schema({
   companyDetails: String,
   address: String,
   city: String,
-  state: String,
+  state: String,  
   pincode: String,
   customerPhone: String,
   customerEmail: String,
@@ -77,6 +77,10 @@ const enquirySchema = new mongoose.Schema({
   pdfData: Buffer, 
   createdAt: { type: Date, default: Date.now },
   lead: { type: mongoose.Schema.Types.ObjectId, ref: 'Lead' },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
 });
 
 module.exports = mongoose.model('Enquiry', enquirySchema);
