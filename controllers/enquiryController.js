@@ -80,11 +80,18 @@ exports.downloadEnquiryPdf = async (req, res) => {
   }
 };
 
+const mongoose = require('mongoose');
+
 exports.getAllPdfsByLead = async (req, res) => {
   try {
-    let query = { lead: req.params.leadId };
+    let leadObjectId;
+    try {
+      leadObjectId = mongoose.Types.ObjectId(req.params.leadId);
+    } catch (e) {
+      return res.status(400).json({ error: 'Invalid leadId format' });
+    }
+    let query = { lead: leadObjectId };
 
-    // Only allow admin to see all, otherwise filter by user
     if (!req.user || req.user.role !== 'admin') {
       query.createdBy = req.user._id;
     }
