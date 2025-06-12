@@ -1,6 +1,7 @@
 const Lead = require('../models/Lead');
 const User = require('../models/User');
 const notifyAllExceptAdmin = require('../config/createNotifications');
+const sendLeadNotificationEmail = require('../utils/sendLeadNotificationEmail');
 
 // Create a new led
 exports.createLead = async (req, res) => {
@@ -107,6 +108,13 @@ exports.forwardLead = async (req, res) => {
       `Lead "${lead.leadDetails.clientName}" forwarded to ${receiver.name} by ${loggedInUser.name}.`,
       `/leadDetails?leadId=${lead._id}`
     );
+
+    await sendLeadNotificationEmail({
+      to: receiver.email,
+      leadId: lead._id,
+      leadDetails: lead.leadDetails,
+      forwardedBy: loggedInUser.name,
+  });
 
     res.status(200).json({ message: 'Lead forwarded successfully', lead: updatedLead });
 
@@ -594,5 +602,44 @@ exports.getActivities = async (req, res) => {
   } catch (err) {
     console.error('Error fetching activities:', err);
     res.status(500).json({ message: 'Error fetching activities', error: err.message });
+  }
+};
+
+exports.getAllActivities = async (req, res) => {
+  try {
+    // Fetch all leads and populate activities with user info
+    const leads = await Lead.find().populate('activities.conductedBy', 'name email');
+    // Flatten the activities from all leads into one array
+    const activities = leads.flatMap(lead =>
+      (lead.activities || []).map(activity => ({
+        ...activity.toObject(),
+        conductedBy: activity.conductedBy,
+        leadName: lead.leadDetails.clientName,
+        leadId: lead._id,
+      }))
+    );
+    res.status(200).json(activities);
+  } catch (err) {
+    console.error('Error fetching all activities:', err);
+    res.status(500).json({ message: 'Failed to fetch activities', error: err.message });
+  }
+};
+
+// endpoint for admin
+exports.getAllActivities = async (req, res) => {
+  try {
+    const leads = await Lead.find().populate('activities.conductedBy', 'name email');
+    const activities = leads.flatMap(lead =>
+      (lead.activities || []).map(activity => ({
+        ...activity.toObject(),
+        conductedBy: activity.conductedBy,
+        leadName: lead.leadDetails.clientName,
+        leadId: lead._id,
+      }))
+    );
+    res.status(200).json(activities);
+  } catch (err) {
+    console.error('Error fetching all activities:', err);
+    res.status(500).json({ message: 'Failed to fetch activities', error: err.message });
   }
 };
