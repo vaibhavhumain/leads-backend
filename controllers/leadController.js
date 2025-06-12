@@ -114,6 +114,7 @@ exports.forwardLead = async (req, res) => {
       leadId: lead._id,
       leadDetails: lead.leadDetails,
       forwardedBy: loggedInUser.name,
+      
   });
 
     res.status(200).json({ message: 'Lead forwarded successfully', lead: updatedLead });
