@@ -7,10 +7,12 @@ const sendLeadNotificationEmail = require('../utils/sendLeadNotificationEmail');
 exports.createLead = async (req, res) => {
   const { leadDetails } = req.body;
 
-  if (!leadDetails?.contacts || !Array.isArray(leadDetails.contacts) || leadDetails.contacts.length === 0) {
-    return res.status(400).json({ message: 'At least one contact number is required' });
+  if (leadDetails.contacts && leadDetails.contacts.length > 0) {
+  const hasValidNumber = leadDetails.contacts.some(c => c.number && c.number.trim() !== '');
+  if (!hasValidNumber) {
+    return res.status(400).json({ message: "Invalid contact number" });
   }
-
+}
   try {
     const newLead = new Lead({
       leadDetails: {
@@ -40,8 +42,6 @@ exports.createLead = async (req, res) => {
     res.status(500).json({ message: 'Error creating lead', error: error.message });
   }
 };
-
-
 
 // update Lead details
 exports.updateClientName = async (req, res) => {
