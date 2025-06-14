@@ -531,19 +531,26 @@ exports.addContact = async (req, res) => {
     const lead = await Lead.findById(id);
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
 
-    // Check for duplicates (optional)
+    // ✅ Ensure contacts array exists
+    if (!Array.isArray(lead.leadDetails.contacts)) {
+      lead.leadDetails.contacts = [];
+    }
+
+    // Check for duplicates
     const exists = lead.leadDetails.contacts.find(c => c.number === number.trim());
     if (exists) {
       return res.status(409).json({ message: 'Contact number already exists for this lead' });
     }
 
+    // ✅ Add new contact
     lead.leadDetails.contacts.push({
       number: number.trim(),
       label: label || 'Alternate',
     });
+
     await lead.save();
 
-    // 🚩 Notify about contact add
+    // ✅ Notify
     await notifyAllExceptAdmin(
       `Contact "${number.trim()}" added to lead "${lead.leadDetails.clientName}" by ${req.user.name}.`,
       `/leadDetails?leadId=${lead._id}`
