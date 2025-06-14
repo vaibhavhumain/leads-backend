@@ -21,7 +21,7 @@ const leadSchema = new mongoose.Schema(
   contacts: {
   type: [
     {
-      number: { type: String, required: true },
+      number: { type: String }, 
       label: { type: String, default: "Primary" }
     }
   ],

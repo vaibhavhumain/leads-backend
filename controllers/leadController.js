@@ -15,16 +15,18 @@ exports.createLead = async (req, res) => {
 }
   try {
     const newLead = new Lead({
-      leadDetails: {
-        source: leadDetails.source || '',
-        clientName: leadDetails.clientName || 'N/A',
-        contacts: leadDetails.contacts,
-        companyName: leadDetails.companyName || '',
-        location: leadDetails.location || '',
-        email: leadDetails.email || '',
-      },
-      createdBy: req.user.id,
-    });
+  leadDetails: {
+    source: leadDetails.source || '',
+    clientName: leadDetails.clientName || 'N/A',
+    contacts: leadDetails.contacts && leadDetails.contacts.length > 0
+      ? leadDetails.contacts
+      : [], 
+    companyName: leadDetails.companyName || '',
+    location: leadDetails.location || '',
+    email: leadDetails.email || '',
+  },
+  createdBy: req.user.id,
+});
 
     await newLead.save();
     const populatedLead = await Lead.findById(newLead._id)
