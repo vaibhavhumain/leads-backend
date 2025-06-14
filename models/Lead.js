@@ -18,12 +18,16 @@ const leadSchema = new mongoose.Schema(
   clientName: { type: String, default: '' }, 
   source: { type: String }, 
   email: { type: String, default: '' },
-  contacts: [
+  contacts: {
+  type: [
     {
       number: { type: String, required: true },
-      label: { type: String, default: "Primary" } // Optional: label
+      label: { type: String, default: "Primary" }
     }
   ],
+  required: false,
+  default: undefined,
+}
 },
 
   isFrozen: { type: Boolean, default: false },
