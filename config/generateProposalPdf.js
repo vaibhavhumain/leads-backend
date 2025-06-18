@@ -33,7 +33,7 @@ async function generateProposalPdf(enquiryData) {
 
   // 1️⃣ Welcome Page
   addPageWithText([
-    '🏁 Welcome to Gobind Coach Builders',
+    ' Welcome to Gobind Coach Builders',
     '',
     'Your Custom Bus Journey Starts Here!',
     '',
@@ -68,7 +68,7 @@ async function generateProposalPdf(enquiryData) {
 
   // 4️⃣ Thank You Page
   addPageWithText([
-    '🙏 Thank You!',
+    ' Thank You!',
     '',
     'We look forward to building your dream bus.',
     '',
