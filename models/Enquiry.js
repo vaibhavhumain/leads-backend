@@ -82,6 +82,8 @@ const enquirySchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
+  proposalPdf: { type: Buffer },
+
 });
 
 module.exports = mongoose.model('Enquiry', enquirySchema);

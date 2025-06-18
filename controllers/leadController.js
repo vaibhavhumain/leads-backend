@@ -520,7 +520,7 @@ exports.getMyLeads = async (req, res) => {
 
 // Add a new contact number to the lead
 exports.addContact = async (req, res) => {
-  const { id } = req.params; // leadId
+  const { id } = req.params; 
   const { number, label } = req.body;
 
   if (!number || !number.trim()) {
