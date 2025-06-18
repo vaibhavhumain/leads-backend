@@ -1,5 +1,6 @@
 const generateProposalPdf = require('../config/generateProposalPdf');
-
+const Lead = require('../models/Lead');
+const Enquiry = require('../models/Enquiry');
 exports.generateProposalForLead = async (req, res) => {
   try {
     const { leadId } = req.params;
