@@ -48,7 +48,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/leads', leadRoutes);
 app.use('/api/answers', answerRoutes);
-app.use('/api', enquiryRoutes);
+app.use('/api/enquiry', enquiryRoutes);
 app.use('/api/upload', uploadRoute);
 app.use('/api/send', sendRoute);
 app.use('/api/pause-logs', pauseLogRoutes);
