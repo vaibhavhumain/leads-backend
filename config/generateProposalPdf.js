@@ -49,10 +49,10 @@ async function generateProposalPdf(enquiryData) {
     `Bus Type: ${enquiryData.busType}`,
     `Feature Requirement: ${enquiryData.featureRequirement}`,
     `Chassis Model: ${enquiryData.chassisModel}`,
-    `Seating Pattern: ${enquiryData.seatingPattern}`,
+    `Seating Patte rn: ${enquiryData.seatingPattern}`,
     `Total Seats: ${enquiryData.totalSeats}`,
   ];
-  addPageWithText(['📋 Proposal Details', '', ...fields], { fontSize: 16, yStart: 760 });
+  addPageWithText(['Proposal Details', '', ...fields], { fontSize: 16, yStart: 760 });
 
   // 3️⃣ Empty Page Placeholder
   const emptyPage = pdfDoc.addPage([595, 842]);
