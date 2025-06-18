@@ -3,7 +3,7 @@ const router = express.Router();
 const {protect} = require('../middleware/authMiddleware')
 const { createEnquiry, downloadEnquiryPdf , getAllPdfsByLead} = require('../controllers/enquiryController');
 
-router.post('/enquiry', protect , createEnquiry);
+router.post('/', protect , createEnquiry);
 
 router.get('/enquiry/pdf/:id',protect, downloadEnquiryPdf);
 
