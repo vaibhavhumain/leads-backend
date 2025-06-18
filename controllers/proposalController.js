@@ -12,7 +12,7 @@ exports.generateProposalForLead = async (req, res) => {
 
     const proposalPdf = await generateProposalPdf(latestEnquiry);
 
-    latestEnquiry.proposalPdf = proposalPdf;
+    latestEnquiry.proposalPdf = Buffer.from(proposalPdf);
     await latestEnquiry.save();
 
     res.status(200).json({
