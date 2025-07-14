@@ -706,3 +706,32 @@ exports.updateCompanyName = async (req, res) => {
     res.status(500).json({ message: 'Failed to update company name' });
   }
 };
+
+// Update lead location
+exports.updateLocation = async (req, res) => {
+  const { id } = req.params;
+  const { location } = req.body;
+
+  if (!location || !location.trim()) {
+    return res.status(400).json({ message: 'Location is required' });
+  }
+
+  try {
+    const lead = await Lead.findById(id);
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+
+    lead.leadDetails.location = location.trim();
+    await lead.save();
+
+    // 🚩 Optional notification
+    await notifyAllExceptAdmin(
+      `Location updated for lead "${lead.leadDetails.clientName}" by ${req.user.name}.`,
+      `/leadDetails?leadId=${lead._id}`
+    );
+
+    res.status(200).json({ message: 'Location updated', lead });
+  } catch (err) {
+    console.error('Error updating location:', err);
+    res.status(500).json({ message: 'Failed to update location' });
+  }
+};
