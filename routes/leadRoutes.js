@@ -23,6 +23,7 @@ const {
   getActivities,
   getAllActivities,
   deleteLeadByUser,
+  updateCompanyName,
 } = require('../controllers/leadController');
 const { protect , admin } = require('../middleware/authMiddleware');
 
@@ -51,6 +52,8 @@ router.put('/:id/email', protect, updateEmail);
 router.put('/:id/client-name', protect, updateClientName);
 router.put('/:id/status', protect, updateLeadStatus);
 router.put('/:id/connection-status', protect, updateConnectionStatus);
+router.put('/:id/company-name', protect, updateCompanyName);
+
 
 
 // ✅ Deletion
