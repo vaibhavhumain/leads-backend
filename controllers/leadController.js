@@ -654,3 +654,32 @@ exports.getAllActivities = async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch activities', error: err.message });
   }
 };
+// Delete lead by user (only if they created it)
+// Delete lead - allowed for admin, bd, and sales roles
+exports.deleteLeadByUser = async (req, res) => {
+  const { id } = req.params;
+  const userRole = req.user.role;
+
+  // Allow deletion only for allowed roles
+  if (!['admin', 'bd', 'sales'].includes(userRole)) {
+    return res.status(403).json({ message: 'You are not allowed to delete leads' });
+  }
+
+  try {
+    const lead = await Lead.findById(id);
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+
+    await lead.deleteOne();
+
+    // 🚩 Notify all users except admin
+    await notifyAllExceptAdmin(
+      `Lead "${lead.leadDetails.clientName}" was deleted by ${req.user.name}.`,
+      `/dashboard`
+    );
+
+    res.status(200).json({ message: 'Lead deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting lead by user:', error);
+    res.status(500).json({ message: 'Error deleting lead', error: error.message });
+  }
+};
