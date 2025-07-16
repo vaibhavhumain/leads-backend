@@ -735,3 +735,24 @@ exports.updateLocation = async (req, res) => {
     res.status(500).json({ message: 'Failed to update location' });
   }
 };
+
+exports.updatePrimaryContact = async (req, res) => {
+  const { contact } = req.body;
+
+  if (!/^\d{10}$/.test(contact)) {
+    return res.status(400).json({ message: 'Invalid contact number' });
+  }
+
+  try {
+    const lead = await Lead.findById(req.params.id);
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+
+    lead.leadDetails.contact = contact;
+    await lead.save();
+
+    res.json({ message: 'Primary contact updated', contact });
+  } catch (err) {
+    console.error('Update contact error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};

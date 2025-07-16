@@ -25,7 +25,7 @@ const {
   deleteLeadByUser,
   updateCompanyName,
   updateLocation,
-} = require('../controllers/leadController');
+  updatePrimaryContact,} = require('../controllers/leadController');
 const { protect , admin } = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -55,6 +55,8 @@ router.put('/:id/status', protect, updateLeadStatus);
 router.put('/:id/connection-status', protect, updateConnectionStatus);
 router.put('/:id/company-name', protect, updateCompanyName);
 router.put('/:id/location', protect, updateLocation);
+router.put('/:id/primary-contact', updatePrimaryContact);
+
 
 // ✅ Deletion
 router.delete('/deleteByUser/:id', protect, deleteLeadByUser);
