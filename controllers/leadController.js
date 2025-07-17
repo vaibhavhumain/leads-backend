@@ -758,23 +758,37 @@ exports.updatePrimaryContact = async (req, res) => {
 };
 
 
-exports.filterLeads = async (req,res) =>{
-  const {date , connectionStatus} = req.query;
+exports.filterLeads = async (req, res) => {
+  const { date, connectionStatus, status, hasFollowUps } = req.query;
+
   try {
     const filter = {};
-    if(date) {
+    if (date) {
       const start = new Date(date);
       const end = new Date(start);
       end.setDate(end.getDate() + 1);
       filter.createdAt = { $gte: start, $lt: end };
     }
-    if(connectionStatus == 'Connected' || connectionStatus == 'Not Connected') {
+
+    if (connectionStatus === 'Connected' || connectionStatus === 'Not Connected') {
       filter.connectionStatus = connectionStatus;
     }
-    const leads = await Lead.find(filter)
-      .populate('createdBy','name email')
-      .populate('forwardedTo.user','name email')
+
+    if (status === 'Hot' || status === 'Warm' || status === 'Cold') {
+      filter.status = status;
+    }
+
+    let leads = await Lead.find(filter)
+      .populate('createdBy', 'name email')
+      .populate('forwardedTo.user', 'name email')
       .populate('remarksHistory.updatedBy', 'name email');
+
+    if (hasFollowUps === 'true') {
+      leads = leads.filter((lead) => Array.isArray(lead.followUps) && lead.followUps.length > 0);
+    } else if (hasFollowUps === 'false') {
+      leads = leads.filter((lead) => !Array.isArray(lead.followUps) || lead.followUps.length === 0);
+    }
+
     res.status(200).json(leads);
   } catch (error) {
     console.error('Error filtering leads:', error);
