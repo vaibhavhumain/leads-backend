@@ -737,20 +737,28 @@ exports.updateLocation = async (req, res) => {
 };
 
 exports.updatePrimaryContact = async (req, res) => {
-  const { contact } = req.body;
+  const { contacts } = req.body; // Expecting an array of strings
 
-  if (!/^\d{10}$/.test(contact)) {
-    return res.status(400).json({ message: 'Invalid contact number' });
+  // Validate input
+  if (!Array.isArray(contacts) || contacts.length === 0) {
+    return res.status(400).json({ message: 'Contacts must be a non-empty array' });
+  }
+
+  const isValid = contacts.every((c) => /^\d{10}$/.test(c));
+  if (!isValid) {
+    return res.status(400).json({ message: 'Each contact must be a valid 10-digit number' });
   }
 
   try {
     const lead = await Lead.findById(req.params.id);
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
 
-    lead.leadDetails.contact = contact;
+    // Save as array of objects: [{ number: "1234567890" }]
+    lead.leadDetails.contacts = contacts.map((number) => ({ number }));
+
     await lead.save();
 
-    res.json({ message: 'Primary contact updated', contact });
+    res.json({ message: 'Contacts updated successfully', contacts: lead.leadDetails.contacts });
   } catch (err) {
     console.error('Update contact error:', err);
     res.status(500).json({ message: 'Server error' });
