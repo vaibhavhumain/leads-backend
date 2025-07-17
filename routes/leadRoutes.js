@@ -27,6 +27,7 @@ const {
   updateLocation,
   updatePrimaryContact,
   filterLeads,
+  addNote,
 } = require('../controllers/leadController');
 const { protect , admin } = require('../middleware/authMiddleware');
 
@@ -49,6 +50,8 @@ router.post('/bulk', protect, bulkCreateLeads);
 router.post('/saveActionPlan', protect, saveActionPlan);
 router.post('/:id/add-contact', protect, addContact);
 router.post('/:leadId/activities',protect , addActivity);
+router.post('/:leadId/notes', protect, addNote);
+
 
 // ✅ Updates
 router.put('/:id/email', protect, updateEmail);

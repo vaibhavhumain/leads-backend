@@ -370,7 +370,9 @@ exports.getLeadById = async (req, res) => {
       .populate('assignedTo', 'name') 
       .populate('forwardedTo.user', 'name email')
       .populate('followUps.by', 'name email')
-      .populate('remarksHistory.updatedBy', 'name email'); 
+      .populate('remarksHistory.updatedBy', 'name email')
+      .populate('notes.addedBy', 'name email');
+
 
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
 
@@ -801,5 +803,37 @@ exports.filterLeads = async (req, res) => {
   } catch (error) {
     console.error('Error filtering leads:', error);
     res.status(500).json({ message: 'Error filtering leads', error: error.message });
+  }
+};
+
+exports.addNote = async (req, res) => {
+  const { leadId, text } = req.body;
+
+  if (!text || !text.trim()) {
+    return res.status(400).json({ message: 'Note text is required' });
+  }
+
+  try {
+    const lead = await Lead.findById(leadId);
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+
+    lead.notes.unshift({
+      text: text.trim(),
+      addedBy: req.user._id,
+    });
+
+    await lead.save();
+
+    const updatedLead = await Lead.findById(leadId).populate('notes.addedBy', 'name');
+
+    await notifyAllExceptAdmin(
+      `New note added to lead "${lead.leadDetails.clientName}" by ${req.user.name}.`,
+      `/leadDetails?leadId=${lead._id}`
+    );
+
+    res.status(200).json({ message: 'Note added', notes: updatedLead.notes });
+  } catch (error) {
+    console.error('Error adding note:', error);
+    res.status(500).json({ message: 'Failed to add note', error: error.message });
   }
 };

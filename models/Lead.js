@@ -83,6 +83,14 @@ answers: [
 
 
     followUps: [followUpSchema], 
+    notes: [
+  {
+    text: { type: String, required: true },
+    date: { type: Date, default: Date.now },
+    addedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+  }
+],
+
     forwardedTo: forwardedToSchema,
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
@@ -98,5 +106,6 @@ const clientProfilingResponseSchema = new mongoose.Schema({
 leadSchema.add({
   clientProfilingResponses: [clientProfilingResponseSchema],
 });
+
 
 module.exports = mongoose.model('Lead', leadSchema);
