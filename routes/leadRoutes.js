@@ -25,7 +25,9 @@ const {
   deleteLeadByUser,
   updateCompanyName,
   updateLocation,
-  updatePrimaryContact,} = require('../controllers/leadController');
+  updatePrimaryContact,
+  filterLeads,
+} = require('../controllers/leadController');
 const { protect , admin } = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -64,7 +66,9 @@ router.delete('/:id', protect, deleteLead);
 router.delete('/', protect, deleteAllLeads);
  
 // ✅ General get (keep last)
-router.get('/', protect, getLeads);
+router.get('/filter',protect,filterLeads);
 router.get('/:id', protect, getLeadById);
+router.get('/', protect, getLeads);
+
 
 module.exports = router;

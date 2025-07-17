@@ -756,3 +756,28 @@ exports.updatePrimaryContact = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+
+exports.filterLeads = async (req,res) =>{
+  const {date , connectionStatus} = req.query;
+  try {
+    const filter = {};
+    if(date) {
+      const start = new Date(date);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 1);
+      filter.createAt = { $gte: start, $lt: end };
+    }
+    if(connectionStatus == 'Connected' || connectionStatus == 'Not Connected') {
+      filter.connectionStatus = connectionStatus;
+    }
+    const leads = await Lead.find(filter)
+      .populate('createdBy','name email')
+      .populate('forwardedTo.user','name email')
+      .populate('remarksHistory.updatedBy', 'name email');
+    res.status(200).json(leads);
+  } catch (error) {
+    console.error('Error filtering leads:', error);
+    res.status(500).json({ message: 'Error filtering leads', error: error.message });
+  }
+};
