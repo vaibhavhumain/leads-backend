@@ -766,7 +766,7 @@ exports.filterLeads = async (req,res) =>{
       const start = new Date(date);
       const end = new Date(start);
       end.setDate(end.getDate() + 1);
-      filter.createAt = { $gte: start, $lt: end };
+      filter.createdAt = { $gte: start, $lt: end };
     }
     if(connectionStatus == 'Connected' || connectionStatus == 'Not Connected') {
       filter.connectionStatus = connectionStatus;
