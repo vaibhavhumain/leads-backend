@@ -65,6 +65,7 @@ connectionStatus: {
   enum: ['Connected', 'Not Connected'],
   default: 'Not Connected',
 },
+
     remarks: { type: String },  
     date: { type: Date }, 
     remarksHistory: [
@@ -90,6 +91,7 @@ answers: [
     addedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
   }
 ],
+
 
     forwardedTo: forwardedToSchema,
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },

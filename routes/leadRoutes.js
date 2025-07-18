@@ -29,6 +29,8 @@ const {
   filterLeads,
   addNote,
   getFollowUpDates,
+  moveToDeadLead,
+  getDeadLeads,
 } = require('../controllers/leadController');
 const { protect , admin } = require('../middleware/authMiddleware');
 
@@ -52,7 +54,7 @@ router.post('/saveActionPlan', protect, saveActionPlan);
 router.post('/:id/add-contact', protect, addContact);
 router.post('/:leadId/activities',protect , addActivity);
 router.post('/:leadId/notes', protect, addNote);
-
+router.post('/move-to-dead/:id',protect,moveToDeadLead);
 
 // ✅ Updates
 router.put('/:id/email', protect, updateEmail);
@@ -74,6 +76,6 @@ router.get('/filter',protect,filterLeads);
 router.get('/followup-dates', protect, getFollowUpDates);
 router.get('/:id', protect, getLeadById);
 router.get('/', protect, getLeads);
-
+router.get('/dead-leads', protect, getDeadLeads);
 
 module.exports = router;

@@ -2,7 +2,7 @@ const Lead = require('../models/Lead');
 const User = require('../models/User');
 const notifyAllExceptAdmin = require('../config/createNotifications');
 const sendLeadNotificationEmail = require('../utils/sendLeadNotificationEmail');
-
+const DeadLead = require('../models/DeadLead');
 // Create a new led
 exports.createLead = async (req, res) => {
   const { leadDetails } = req.body;
@@ -877,5 +877,40 @@ exports.addNote = async (req, res) => {
   } catch (error) {
     console.error('Error adding note:', error);
     res.status(500).json({ message: 'Failed to add note', error: error.message });
+  }
+};
+
+exports.moveLeadToDead = async (req, res) => {
+  try {
+    const leadId = req.params.id;
+    const lead = await Lead.findById(leadId);
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+
+    const deadLead = new DeadLead({
+      originalLeadId: lead._id,
+      leadDetails: lead.leadDetails,
+      createdBy: lead.createdBy,
+      forwardedTo: lead.forwardedTo,
+      followUps: lead.followUps,
+      notes: lead.notes,
+      remarksHistory: lead.remarksHistory
+    });
+
+    await deadLead.save();
+    await Lead.findByIdAndDelete(lead._id);
+
+    res.status(200).json({ message: 'Lead moved to Dead Leads', deadLead });
+  } catch (err) {
+    console.error('❌ Error moving to dead leads:', err.message);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+exports.getDeadLeads = async (req, res) => {
+  try {
+    const deadLeads = await DeadLead.find().populate('createdBy').sort({ deletedAt: -1 });
+    res.status(200).json({ deadLeads });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch dead leads' });
   }
 };
