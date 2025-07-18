@@ -28,6 +28,7 @@ const {
   updatePrimaryContact,
   filterLeads,
   addNote,
+  getFollowUpDates,
 } = require('../controllers/leadController');
 const { protect , admin } = require('../middleware/authMiddleware');
 
@@ -70,6 +71,7 @@ router.delete('/', protect, deleteAllLeads);
  
 // ✅ General get (keep last)
 router.get('/filter',protect,filterLeads);
+router.get('/followup-dates', protect, getFollowUpDates);
 router.get('/:id', protect, getLeadById);
 router.get('/', protect, getLeads);
 

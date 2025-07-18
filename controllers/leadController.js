@@ -769,10 +769,11 @@ exports.updatePrimaryContact = async (req, res) => {
 
 
 exports.filterLeads = async (req, res) => {
-  const { date, connectionStatus, status, hasFollowUps } = req.query;
+  const { date, connectionStatus, status, hasFollowUps, followUpDate } = req.query;
 
   try {
     const filter = {};
+
     if (date) {
       const start = new Date(date);
       const end = new Date(start);
@@ -793,10 +794,26 @@ exports.filterLeads = async (req, res) => {
       .populate('forwardedTo.user', 'name email')
       .populate('remarksHistory.updatedBy', 'name email');
 
+    // Filter leads by follow-up presence
     if (hasFollowUps === 'true') {
       leads = leads.filter((lead) => Array.isArray(lead.followUps) && lead.followUps.length > 0);
     } else if (hasFollowUps === 'false') {
       leads = leads.filter((lead) => !Array.isArray(lead.followUps) || lead.followUps.length === 0);
+    }
+
+    // 💡 NEW: Filter by follow-up date
+    if (followUpDate) {
+      const selected = new Date(followUpDate);
+      const nextDay = new Date(selected);
+      nextDay.setDate(selected.getDate() + 1);
+
+      leads = leads.filter(lead =>
+        Array.isArray(lead.followUps) &&
+        lead.followUps.some(fup => {
+          const fupDate = new Date(fup.date);
+          return fupDate >= selected && fupDate < nextDay;
+        })
+      );
     }
 
     res.status(200).json(leads);
@@ -805,6 +822,28 @@ exports.filterLeads = async (req, res) => {
     res.status(500).json({ message: 'Error filtering leads', error: error.message });
   }
 };
+
+exports.getFollowUpDates = async (req, res) => {
+  try {
+    const dates = await Lead.aggregate([
+      { $unwind: '$followUps' },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m-%d', date: '$followUps.date' }
+          }
+        }
+      },
+      { $sort: { _id: -1 } }
+    ]);
+
+    res.status(200).json(dates.map(d => d._id)); // returns ['2025-07-18', '2025-07-17', ...]
+  } catch (err) {
+    console.error('Error fetching follow-up dates:', err);
+    res.status(500).json({ message: 'Failed to fetch dates', error: err.message });
+  }
+};
+
 
 exports.addNote = async (req, res) => {
   const { leadId, text } = req.body;
