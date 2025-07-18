@@ -52,7 +52,6 @@ router.post('/followup', protect, addFollowUp);
 router.post('/bulk', protect, bulkCreateLeads);
 router.post('/saveActionPlan', protect, saveActionPlan);
 router.post('/:id/add-contact', protect, addContact);
-router.get('/:id', protect, getLeadById);
 router.post('/:leadId/activities',protect , addActivity);
 router.post('/:leadId/notes', protect, addNote);
 router.post('/move-to-dead/:id',protect,moveLeadToDead);
@@ -77,5 +76,6 @@ router.get('/filter',protect,filterLeads);
 router.get('/followup-dates', protect, getFollowUpDates);
 router.get('/dead-leads', protect, getDeadLeads);
 router.get('/', protect, getLeads);
+router.get('/:id', protect, getLeadById);
 
 module.exports = router;
