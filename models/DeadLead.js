@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const deadLeadSchema = new mongooose.Schema({
+const deadLeadSchema = new mongoose.Schema({
     originalLeadId: {type:mongoose.Schema.Types.ObjectId, ref:'Lead'},
     leadDetails: Object,
     createdBy: {type:mongoose.Schema.Types.ObjectId, ref:'User'},
