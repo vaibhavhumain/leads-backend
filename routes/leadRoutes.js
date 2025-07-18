@@ -81,3 +81,4 @@ router.get('/', protect, getLeads);
 router.get('/:id', protect, getLeadById);
 
 module.exports = router;
+//this is the lead routes file that handles all lead-related operations
