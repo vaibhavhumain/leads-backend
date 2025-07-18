@@ -33,7 +33,8 @@ const {
   getDeadLeads,
   getDeadLeadById
 } = require('../controllers/leadController');
-const { protect , admin } = require('../middleware/authMiddleware');
+
+const { protect, admin } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
@@ -43,8 +44,8 @@ router.get('/all', protect, getAllLeads);
 router.get('/forwarded-to-me', protect, getForwardedLeadsToMe);
 router.get('/search', protect, searchLeadsByPhone);
 router.get('/:leadId/actionPlans', protect, getActionPlans);
-router.get('/:leadId/activities',protect , getActivities);
-router.get('/all-activities',protect,admin,getAllActivities);
+router.get('/:leadId/activities', protect, getActivities);
+router.get('/all-activities', protect, admin, getAllActivities);
 
 // ✅ Lead creation & update
 router.post('/create', protect, createLead);
@@ -53,9 +54,9 @@ router.post('/followup', protect, addFollowUp);
 router.post('/bulk', protect, bulkCreateLeads);
 router.post('/saveActionPlan', protect, saveActionPlan);
 router.post('/:id/add-contact', protect, addContact);
-router.post('/:leadId/activities',protect , addActivity);
+router.post('/:leadId/activities', protect, addActivity);
 router.post('/:leadId/notes', protect, addNote);
-router.post('/move-to-dead/:id',protect,moveLeadToDead);
+router.post('/move-to-dead/:id', protect, moveLeadToDead);
 
 // ✅ Updates
 router.put('/:id/email', protect, updateEmail);
@@ -66,19 +67,19 @@ router.put('/:id/company-name', protect, updateCompanyName);
 router.put('/:id/location', protect, updateLocation);
 router.put('/:id/primary-contact', updatePrimaryContact);
 
-
 // ✅ Deletion
 router.delete('/deleteByUser/:id', protect, deleteLeadByUser);
 router.delete('/:id', protect, deleteLead);
 router.delete('/', protect, deleteAllLeads);
- 
-// ✅ General get (keep last)
-router.get('/filter',protect,filterLeads);
+
+// ✅ General GET (specific first)
+router.get('/filter', protect, filterLeads);
 router.get('/followup-dates', protect, getFollowUpDates);
-router.get('/dead-leads', protect, getDeadLeads);
-router.get('/dead-leads/:id', protect, getDeadLeadById);
+router.get('/dead-leads', protect, getDeadLeads); 
+router.get('/dead-leads/:id', protect, getDeadLeadById); 
+
+// ✅ Generic GET (last)
 router.get('/', protect, getLeads);
 router.get('/:id', protect, getLeadById);
 
 module.exports = router;
-//this is the lead routes file that handles all lead-related operations
