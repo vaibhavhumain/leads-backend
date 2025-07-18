@@ -29,7 +29,7 @@ const {
   filterLeads,
   addNote,
   getFollowUpDates,
-  moveToDeadLead,
+  moveLeadToDead,
   getDeadLeads,
 } = require('../controllers/leadController');
 const { protect , admin } = require('../middleware/authMiddleware');
@@ -54,7 +54,7 @@ router.post('/saveActionPlan', protect, saveActionPlan);
 router.post('/:id/add-contact', protect, addContact);
 router.post('/:leadId/activities',protect , addActivity);
 router.post('/:leadId/notes', protect, addNote);
-router.post('/move-to-dead/:id',protect,moveToDeadLead);
+router.post('/move-to-dead/:id',protect,moveLeadToDead);
 
 // ✅ Updates
 router.put('/:id/email', protect, updateEmail);
