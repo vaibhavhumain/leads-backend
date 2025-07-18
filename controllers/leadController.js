@@ -925,7 +925,7 @@ exports.getDeadLeadById = async (req, res) => {
       .populate('followUps.by', 'name email')
       .populate('remarksHistory.updatedBy', 'name email')
       .populate('notes.addedBy', 'name email');
-
+    
     if (!lead) return res.status(404).json({ message: 'Dead Lead not found' });
 
     res.status(200).json({ lead });
