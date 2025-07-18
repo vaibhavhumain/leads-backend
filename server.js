@@ -15,13 +15,15 @@ app.use(express.json());
 app.use(express.static('public'));
 
 // ✅ CORS Configuration
-app.use(cors({
+const corsOptions = {
   origin: ['http://localhost:3000', 'https://leadsmanage.netlify.app'],
   credentials: true,
-}));
+};
+
+app.use(cors(corsOptions));
 
 // ✅ Handle preflight (OPTIONS) requests globally
-app.options('*', cors());
+app.options('*', cors(corsOptions));
 
 // ✅ Request logger (optional)
 app.use((req, res, next) => {
