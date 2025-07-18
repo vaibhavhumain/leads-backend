@@ -914,3 +914,23 @@ exports.getDeadLeads = async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch dead leads' });
   }
 };
+
+
+// Get a single dead lead by ID
+exports.getDeadLeadById = async (req, res) => {
+  try {
+    const lead = await DeadLead.findById(req.params.id)
+      .populate('createdBy', 'name email')
+      .populate('forwardedTo.user', 'name email')
+      .populate('followUps.by', 'name email')
+      .populate('remarksHistory.updatedBy', 'name email')
+      .populate('notes.addedBy', 'name email');
+
+    if (!lead) return res.status(404).json({ message: 'Dead Lead not found' });
+
+    res.status(200).json({ lead });
+  } catch (error) {
+    console.error('Error fetching dead lead:', error);
+    res.status(500).json({ message: 'Error fetching dead lead', error: error.message });
+  }
+};

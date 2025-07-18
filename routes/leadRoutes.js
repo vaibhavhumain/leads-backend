@@ -31,6 +31,7 @@ const {
   getFollowUpDates,
   moveLeadToDead,
   getDeadLeads,
+  getDeadLeadById
 } = require('../controllers/leadController');
 const { protect , admin } = require('../middleware/authMiddleware');
 
@@ -75,6 +76,7 @@ router.delete('/', protect, deleteAllLeads);
 router.get('/filter',protect,filterLeads);
 router.get('/followup-dates', protect, getFollowUpDates);
 router.get('/dead-leads', protect, getDeadLeads);
+router.get('/dead-leads/:id', protect, getDeadLeadById);
 router.get('/', protect, getLeads);
 router.get('/:id', protect, getLeadById);
 
