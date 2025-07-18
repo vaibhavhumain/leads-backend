@@ -74,8 +74,8 @@ router.delete('/', protect, deleteAllLeads);
 // ✅ General get (keep last)
 router.get('/filter',protect,filterLeads);
 router.get('/followup-dates', protect, getFollowUpDates);
+router.get('/dead-leads', protect, getDeadLeads);
 router.get('/:id', protect, getLeadById);
 router.get('/', protect, getLeads);
-router.get('/dead-leads', protect, getDeadLeads);
 
 module.exports = router;
