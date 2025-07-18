@@ -110,14 +110,17 @@ exports.forwardLead = async (req, res) => {
       `Lead "${lead.leadDetails.clientName}" forwarded to ${receiver.name} by ${loggedInUser.name}.`,
       `/leadDetails?leadId=${lead._id}`
     );
-
-    await sendLeadNotificationEmail({
-      to: receiver.email,
-      leadId: lead._id,
-      leadDetails: lead.leadDetails,
-      forwardedBy: loggedInUser.name,
-      
+try {
+  await sendLeadNotificationEmail({
+    to: receiver.email,
+    leadId: lead._id,
+    leadDetails: lead.leadDetails,
+    forwardedBy: loggedInUser.name
   });
+} catch (emailErr) {
+  console.error("📧 Failed to send email:", emailErr.message);
+}
+
 
     res.status(200).json({ message: 'Lead forwarded successfully', lead: updatedLead });
 
