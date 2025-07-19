@@ -913,3 +913,30 @@ exports.markLeadAsDead = async (req, res) => {
     res.status(500).json({ message: 'Internal Server Error' });
   }
 };
+
+
+// controllers/leadController.js
+
+exports.getDeadLeads = async (req, res) => {
+  try {
+    const { status } = req.query; 
+    const query = {};
+    if (status === 'dead') {
+      query.lifecycleStatus = 'dead';
+    } else if (status === 'active') {
+      query.lifecycleStatus = 'active';
+    }
+    // query.createdBy = req.user.id;
+    const leads = await Lead.find(query)
+      .populate('createdBy', 'name email')
+      .populate('forwardedTo.user', 'name email')
+      .populate('followUps.by', 'name')
+      .populate('notes.addedBy', 'name')
+      .sort({ updatedAt: -1 });
+
+    res.status(200).json({ leads });
+  } catch (error) {
+    console.error("Error fetching leads:", error);
+    res.status(500).json({ message: "Failed to fetch leads" });
+  }
+};

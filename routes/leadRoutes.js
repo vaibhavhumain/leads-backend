@@ -30,6 +30,7 @@ const {
   addNote,
   getFollowUpDates,
   markLeadAsDead,
+  getDeadLeads,
 } = require('../controllers/leadController');
 
 const { protect, admin } = require('../middleware/authMiddleware');
@@ -77,5 +78,6 @@ router.get('/followup-dates', protect, getFollowUpDates);
 // ✅ Generic GET (last)
 router.get('/', protect, getLeads);
 router.get('/:id', protect, getLeadById);
+router.get('/',protect , getDeadLeads);
 
 module.exports = router;
