@@ -828,22 +828,49 @@ exports.filterLeads = async (req, res) => {
 
 exports.getFollowUpDates = async (req, res) => {
   try {
-    const dates = await Lead.aggregate([
+    const isAdmin = req.user?.role === 'admin'; // make sure req.user is populated by auth middleware
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const matchStage = isAdmin
+      ? { $match: { 'followUps.0': { $exists: true } } }
+      : {
+          $match: {
+            followUps: {
+              $elemMatch: {
+                date: { $gte: today }
+              }
+            }
+          }
+        };
+
+    const pipeline = [
+      matchStage,
       { $unwind: '$followUps' },
+      ...(isAdmin
+        ? []
+        : [{ $match: { 'followUps.date': { $gte: today } } }]),
       {
         $group: {
           _id: {
-            $dateToString: { format: '%Y-%m-%d', date: '$followUps.date' }
+            $dateToString: {
+              format: '%Y-%m-%d',
+              date: '$followUps.date'
+            }
           }
         }
       },
       { $sort: { _id: -1 } }
-    ]);
+    ];
 
-    res.status(200).json(dates.map(d => d._id)); // returns ['2025-07-18', '2025-07-17', ...]
+    const dates = await Lead.aggregate(pipeline);
+    res.status(200).json(dates.map((d) => d._id));
   } catch (err) {
     console.error('Error fetching follow-up dates:', err);
-    res.status(500).json({ message: 'Failed to fetch dates', error: err.message });
+    res
+      .status(500)
+      .json({ message: 'Failed to fetch dates', error: err.message });
   }
 };
 
@@ -920,18 +947,10 @@ exports.markLeadAsDead = async (req, res) => {
 
 exports.getDeadLeads = async (req, res) => {
   try {
-    const { status } = req.query; 
-    const query = {
-      createdBy: req.user.id  
-    };
-
-    if (status === 'dead') {
-      query.lifecycleStatus = 'dead';
-    } else if (status === 'active') {
-      query.lifecycleStatus = 'active';
-    }
-
-    const leads = await Lead.find(query)
+    const leads = await Lead.find({
+      createdBy: req.user.id,
+      lifecycleStatus: 'dead'
+    })
       .populate('createdBy', 'name email')
       .populate('forwardedTo.user', 'name email')
       .populate('followUps.by', 'name')
@@ -940,10 +959,11 @@ exports.getDeadLeads = async (req, res) => {
 
     res.status(200).json({ leads });
   } catch (error) {
-    console.error("Error fetching leads:", error);
-    res.status(500).json({ message: "Failed to fetch leads" });
+    console.error("Error fetching dead leads:", error);
+    res.status(500).json({ message: "Failed to fetch dead leads" });
   }
 };
+
 
 //  lifecycleStatus of a lead (active/dead)
 exports.updateLifecycleStatus = async (req, res) => {
