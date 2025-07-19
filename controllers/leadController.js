@@ -2,7 +2,7 @@ const Lead = require('../models/Lead');
 const User = require('../models/User');
 const notifyAllExceptAdmin = require('../config/createNotifications');
 const sendLeadNotificationEmail = require('../utils/sendLeadNotificationEmail');
-// Create a new led
+// Create a new lead
 exports.createLead = async (req, res) => {
   const { leadDetails } = req.body;
 
@@ -25,6 +25,7 @@ exports.createLead = async (req, res) => {
     email: leadDetails.email || '',
   },
   createdBy: req.user.id,
+  lifecycleStatus: 'active', 
 });
 
     await newLead.save();
@@ -943,7 +944,6 @@ exports.getDeadLeads = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch leads" });
   }
 };
-
 
 //  lifecycleStatus of a lead (active/dead)
 exports.updateLifecycleStatus = async (req, res) => {
