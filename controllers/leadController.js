@@ -880,28 +880,37 @@ exports.addNote = async (req, res) => {
   }
 };
 
-exports.moveLeadToDead = async (req, res) => {
+exports.markLeadAsDead = async (req, res) => {
   try {
-    const leadId = req.params.id;
-    const lead = await Lead.findById(leadId);
+    const { id } = req.params;
+    const { note } = req.body;
+
+    const lead = await Lead.findById(id);
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
 
-    const deadLead = new DeadLead({
-      originalLeadId: lead._id,
-      leadDetails: lead.leadDetails,
-      createdBy: lead.createdBy,
-      forwardedTo: lead.forwardedTo,
-      followUps: lead.followUps,
-      notes: lead.notes,
-      remarksHistory: lead.remarksHistory
-    });
+    // Mark as dead
+    lead.lifecycleStatus = 'dead';
+    lead.deletedAt = new Date();
 
-    await deadLead.save();
-    await Lead.findByIdAndDelete(lead._id);
+    // Optional: Add a final note
+    if (note && note.trim()) {
+      lead.notes.unshift({
+        text: note.trim(),
+        addedBy: req.user._id,
+        date: new Date()
+      });
+    }
 
-    res.status(200).json({ message: 'Lead moved to Dead Leads', deadLead });
+    await lead.save();
+
+    await notifyAllExceptAdmin(
+      `Lead "${lead.leadDetails.clientName}" marked as Dead by ${req.user.name}.`,
+      `/leadDetails?leadId=${lead._id}`
+    );
+
+    res.status(200).json({ message: 'Lead marked as dead', lead });
   } catch (err) {
-    console.error('❌ Error moving to dead leads:', err.message);
+    console.error('❌ Error marking lead as dead:', err.message);
     res.status(500).json({ message: 'Internal Server Error' });
   }
 };
@@ -915,7 +924,7 @@ exports.getDeadLeads = async (req, res) => {
   }
 };
 
-
+  
 // Get a single dead lead by ID
 exports.getDeadLeadById = async (req, res) => {
   try {

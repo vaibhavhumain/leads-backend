@@ -66,6 +66,13 @@ connectionStatus: {
   default: 'Not Connected',
 },
 
+lifecycleStatus: {
+  type: String,
+  enum: ['active', 'dead'],
+  default: 'active'
+},
+
+
     remarks: { type: String },  
     date: { type: Date }, 
     remarksHistory: [
