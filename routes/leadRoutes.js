@@ -31,6 +31,7 @@ const {
   getFollowUpDates,
   markLeadAsDead,
   getDeadLeads,
+  updateLifecycleStatus,
 } = require('../controllers/leadController');
 
 const { protect, admin } = require('../middleware/authMiddleware');
@@ -65,6 +66,7 @@ router.put('/:id/connection-status', protect, updateConnectionStatus);
 router.put('/:id/company-name', protect, updateCompanyName);
 router.put('/:id/location', protect, updateLocation);
 router.put('/:id/primary-contact', updatePrimaryContact);
+router.put('/:id/lifecycle', protect, updateLifecycleStatus);
 
 // ✅ Deletion
 router.delete('/deleteByUser/:id', protect, deleteLeadByUser);
@@ -75,7 +77,7 @@ router.delete('/', protect, deleteAllLeads);
 router.get('/filter', protect, filterLeads);
 router.get('/followup-dates', protect, getFollowUpDates);
 router.get('/dead-leads',protect , getDeadLeads);
-router.get('/:id', protect, getLeadById);
 router.get('/', protect, getLeads);   
+router.get('/:id', protect, getLeadById);
 
 module.exports = router;

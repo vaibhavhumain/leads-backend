@@ -920,13 +920,16 @@ exports.markLeadAsDead = async (req, res) => {
 exports.getDeadLeads = async (req, res) => {
   try {
     const { status } = req.query; 
-    const query = {};
+    const query = {
+      createdBy: req.user.id  
+    };
+
     if (status === 'dead') {
       query.lifecycleStatus = 'dead';
     } else if (status === 'active') {
       query.lifecycleStatus = 'active';
     }
-    // query.createdBy = req.user.id;
+
     const leads = await Lead.find(query)
       .populate('createdBy', 'name email')
       .populate('forwardedTo.user', 'name email')
@@ -938,5 +941,34 @@ exports.getDeadLeads = async (req, res) => {
   } catch (error) {
     console.error("Error fetching leads:", error);
     res.status(500).json({ message: "Failed to fetch leads" });
+  }
+};
+
+
+//  lifecycleStatus of a lead (active/dead)
+exports.updateLifecycleStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { lifecycleStatus } = req.body;
+
+    if (!['active', 'dead'].includes(lifecycleStatus)) {
+      return res.status(400).json({ message: 'Invalid lifecycle status' });
+    }
+
+    const lead = await Lead.findById(id);
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+
+    lead.lifecycleStatus = lifecycleStatus;
+    if (lifecycleStatus === 'dead') {
+      lead.deletedAt = new Date();
+    } else {
+      lead.deletedAt = null;
+    }
+
+    await lead.save();
+    res.status(200).json({ message: 'Lifecycle status updated', lead });
+  } catch (err) {
+    console.error('❌ Error updating lifecycle status:', err.message);
+    res.status(500).json({ message: 'Internal Server Error' });
   }
 };
