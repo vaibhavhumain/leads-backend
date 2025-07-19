@@ -30,8 +30,6 @@ const {
   addNote,
   getFollowUpDates,
   markLeadAsDead,
-  getDeadLeads,
-  getDeadLeadById
 } = require('../controllers/leadController');
 
 const { protect, admin } = require('../middleware/authMiddleware');
@@ -75,8 +73,6 @@ router.delete('/', protect, deleteAllLeads);
 // ✅ General GET (specific first)
 router.get('/filter', protect, filterLeads);
 router.get('/followup-dates', protect, getFollowUpDates);
-router.get('/dead-leads', protect, getDeadLeads); 
-router.get('/dead-leads/:id', protect, getDeadLeadById); 
 
 // ✅ Generic GET (last)
 router.get('/', protect, getLeads);
