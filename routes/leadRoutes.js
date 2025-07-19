@@ -76,8 +76,8 @@ router.get('/filter', protect, filterLeads);
 router.get('/followup-dates', protect, getFollowUpDates);
 
 // ✅ Generic GET (last)
-router.get('/', protect, getLeads);
-router.get('/:id', protect, getLeadById);
 router.get('/dead-leads',protect , getDeadLeads);
+router.get('/', protect, getLeads);   
+router.get('/:id', protect, getLeadById);
 
 module.exports = router;
