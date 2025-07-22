@@ -59,6 +59,7 @@ exports.updateClientName = async (req, res) => {
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
 
     lead.leadDetails.clientName = clientName.trim();
+    lead.lastEditedAt = new Date();
     await lead.save();
 
     // 🚩 Notify about name change
@@ -99,6 +100,7 @@ exports.forwardLead = async (req, res) => {
       forwardedAt: new Date(),
     };
     lead.isFrozen = true;
+    lead.lastEditedAt = new Date();
     await lead.save();
 
     const updatedLead = await Lead.findById(leadId)
@@ -156,7 +158,7 @@ exports.addFollowUp = async (req, res) => {
       notes: followUp.notes,
       by: req.user._id
     });
-
+    lead.lastEditedAt = new Date();
     await lead.save();
 
     // 🚩 Notify about follow-up
@@ -188,7 +190,7 @@ exports.saveActionPlan = async (req, res) => {
       text: actionPlan.trim(),
       addedBy: req.user._id,
     });
-
+    lead.lastEditedAt = new Date();
     await lead.save();
 
     const updatedLead = await Lead.findById(leadId).populate('actionPlans.addedBy', 'name');
@@ -328,6 +330,7 @@ exports.updateEmail = async (req, res) => {
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
 
     lead.leadDetails.email = email.trim();
+    lead.lastEditedAt = new Date();
     await lead.save();
 
     res.status(200).json({ message: 'Email updated', lead });
@@ -414,6 +417,7 @@ exports.updateLeadStatus = async (req, res) => {
     if (lead.forwardedTo?.user?.toString() === req.user._id.toString()) {
       lead.isFrozen = false;
     }
+    lead.lastEditedAt = new Date();
     await lead.save();
 
     // 🚩 Notify about status change
@@ -470,6 +474,7 @@ exports.updateConnectionStatus = async (req, res) => {
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
 
     lead.connectionStatus = connectionStatus;
+    lead.lastEditedAt = new Date();
     await lead.save();
 
     // 🚩 Notify about connection status
@@ -552,6 +557,8 @@ exports.addContact = async (req, res) => {
       number: number.trim(),
       label: label || 'Alternate',
     });
+    lead.lastEditedAt = new Date();
+
 
     await lead.save();
 
@@ -591,6 +598,7 @@ exports.addActivity = async (req, res) => {
       remarks,
       outcome,
     });
+    lead.lastEditedAt = new Date();
     await lead.save();
 
     await lead.populate('activities.conductedBy', 'name email');
@@ -703,6 +711,7 @@ exports.updateCompanyName = async (req, res) => {
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
 
     lead.leadDetails.companyName = companyName.trim();
+    lead.lastEditedAt = new Date();
     await lead.save();
 
     res.status(200).json({ message: 'Company name updated', lead });
@@ -726,9 +735,9 @@ exports.updateLocation = async (req, res) => {
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
 
     lead.leadDetails.location = location.trim();
+    lead.lastEditedAt = new Date();
     await lead.save();
 
-    // 🚩 Optional notification
     await notifyAllExceptAdmin(
       `Location updated for lead "${lead.leadDetails.clientName}" by ${req.user.name}.`,
       `/leadDetails?leadId=${lead._id}`
@@ -760,7 +769,7 @@ exports.updatePrimaryContact = async (req, res) => {
 
     // Save as array of objects: [{ number: "1234567890" }]
     lead.leadDetails.contacts = contacts.map((number) => ({ number }));
-
+lead.lastEditedAt = new Date();
     await lead.save();
 
     res.json({ message: 'Contacts updated successfully', contacts: lead.leadDetails.contacts });
@@ -890,7 +899,7 @@ exports.addNote = async (req, res) => {
       text: text.trim(),
       addedBy: req.user._id,
     });
-
+    lead.lastEditedAt = new Date();
     await lead.save();
 
     const updatedLead = await Lead.findById(leadId).populate('notes.addedBy', 'name');
@@ -927,7 +936,7 @@ exports.markLeadAsDead = async (req, res) => {
         date: new Date()
       });
     }
-
+    lead.lastEditedAt = new Date();
     await lead.save();
 
     await notifyAllExceptAdmin(
@@ -984,7 +993,7 @@ exports.updateLifecycleStatus = async (req, res) => {
     } else {
       lead.deletedAt = null;
     }
-
+    lead.lastEditedAt = new Date();
     await lead.save();
     res.status(200).json({ message: 'Lifecycle status updated', lead });
   } catch (err) {

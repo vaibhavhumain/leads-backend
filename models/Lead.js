@@ -72,6 +72,7 @@ lifecycleStatus: {
   default: 'active'
 },
 
+lastEditedAt: { type: Date, default: Date.now },
 
     remarks: { type: String },  
     date: { type: Date }, 
