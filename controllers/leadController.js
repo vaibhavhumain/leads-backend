@@ -1001,3 +1001,25 @@ exports.updateLifecycleStatus = async (req, res) => {
     res.status(500).json({ message: 'Internal Server Error' });
   }
 };
+
+
+// controllers/leadController.js
+
+exports.getEditedDates = async (req, res) => {
+  try {
+    const dates = await Lead.aggregate([
+      { $match: { lastEditedAt: { $exists: true, $ne: null } } },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m-%d', date: '$lastEditedAt' }
+          }
+        }
+      },
+      { $sort: { _id: -1 } }
+    ]);
+    res.status(200).json(dates.map(d => d._id));
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch edited dates" });
+  }
+};
