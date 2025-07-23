@@ -20,6 +20,7 @@ exports.saveLeadTimerLog = async (req, res) => {
       stoppedBy: userId,
       stoppedByName,
       duration,
+      startTime,
     });
 
     // 🚩 Send in-app notification
