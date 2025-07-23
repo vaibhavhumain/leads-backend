@@ -33,6 +33,7 @@ const {
   getDeadLeads,
   updateLifecycleStatus,
   getEditedDates,
+  getLeadsEditedReport,
 } = require('../controllers/leadController');
 
 const { protect, admin } = require('../middleware/authMiddleware');
@@ -79,6 +80,7 @@ router.get('/filter', protect, filterLeads);
 router.get('/followup-dates', protect, getFollowUpDates);
 router.get('/edited-dates', protect, getEditedDates);
 router.get('/dead-leads',protect , getDeadLeads);
+router.get('/leads-edited', protect, getLeadsEditedReport);
 router.get('/', protect, getLeads);   
 router.get('/:id', protect, getLeadById);
 

@@ -1036,3 +1036,27 @@ exports.getEditedDates = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch edited dates" });
   }
 };
+
+exports.getLeadsEditedReport = async (req, res) => {
+  try {
+    const { date, userId } = req.query;
+    if (!date || !userId) return res.status(400).json({ message: 'date and userId required' });
+
+    const start = new Date(date);
+    start.setHours(0,0,0,0);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 1);
+
+    const leads = await Lead.find({
+      lastEditedAt: { $gte: start, $lt: end },
+      createdBy: userId, 
+    })
+      .populate('createdBy', 'name email')
+      .populate('followUps.by', 'name')
+      .populate('notes.addedBy', 'name');
+ 
+    res.status(200).json({ leads });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch leads", error: err.message });
+  }
+};
