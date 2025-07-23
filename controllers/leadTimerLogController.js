@@ -6,7 +6,7 @@ const notifyAllExceptAdmin = require('../config/createNotifications');
 exports.saveLeadTimerLog = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { leadId, leadName, stoppedByName, duration } = req.body;
+    const { leadId, leadName, stoppedByName, duration, startTime } = req.body;
 
     // Validation
     if (!leadId || !leadName || !stoppedByName || !duration) {
