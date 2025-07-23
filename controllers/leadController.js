@@ -60,6 +60,7 @@ exports.updateClientName = async (req, res) => {
 
     lead.leadDetails.clientName = clientName.trim();
     lead.lastEditedAt = new Date();
+    lead.lastEditedBy = req.user._id; 
     await lead.save();
 
     // 🚩 Notify about name change
@@ -101,6 +102,7 @@ exports.forwardLead = async (req, res) => {
     };
     lead.isFrozen = true;
     lead.lastEditedAt = new Date();
+    lead.lastEditedBy = req.user._id; 
     await lead.save();
 
     const updatedLead = await Lead.findById(leadId)
@@ -159,6 +161,7 @@ exports.addFollowUp = async (req, res) => {
       by: req.user._id
     });
     lead.lastEditedAt = new Date();
+    lead.lastEditedBy = req.user._id; 
     await lead.save();
 
     // 🚩 Notify about follow-up
@@ -191,6 +194,7 @@ exports.saveActionPlan = async (req, res) => {
       addedBy: req.user._id,
     });
     lead.lastEditedAt = new Date();
+    lead.lastEditedBy = req.user._id; 
     await lead.save();
 
     const updatedLead = await Lead.findById(leadId).populate('actionPlans.addedBy', 'name');
@@ -331,6 +335,7 @@ exports.updateEmail = async (req, res) => {
 
     lead.leadDetails.email = email.trim();
     lead.lastEditedAt = new Date();
+    lead.lastEditedBy = req.user._id; 
     await lead.save();
 
     res.status(200).json({ message: 'Email updated', lead });
@@ -418,6 +423,7 @@ exports.updateLeadStatus = async (req, res) => {
       lead.isFrozen = false;
     }
     lead.lastEditedAt = new Date();
+    lead.lastEditedBy = req.user._id; 
     await lead.save();
 
     // 🚩 Notify about status change
@@ -475,6 +481,7 @@ exports.updateConnectionStatus = async (req, res) => {
 
     lead.connectionStatus = connectionStatus;
     lead.lastEditedAt = new Date();
+    lead.lastEditedBy = req.user._id; 
     await lead.save();
 
     // 🚩 Notify about connection status
@@ -558,8 +565,7 @@ exports.addContact = async (req, res) => {
       label: label || 'Alternate',
     });
     lead.lastEditedAt = new Date();
-
-
+    lead.lastEditedBy = req.user._id; 
     await lead.save();
 
     // ✅ Notify
@@ -599,6 +605,7 @@ exports.addActivity = async (req, res) => {
       outcome,
     });
     lead.lastEditedAt = new Date();
+    lead.lastEditedBy = req.user._id; 
     await lead.save();
 
     await lead.populate('activities.conductedBy', 'name email');
@@ -712,6 +719,7 @@ exports.updateCompanyName = async (req, res) => {
 
     lead.leadDetails.companyName = companyName.trim();
     lead.lastEditedAt = new Date();
+    lead.lastEditedBy = req.user._id; 
     await lead.save();
 
     res.status(200).json({ message: 'Company name updated', lead });
@@ -736,6 +744,7 @@ exports.updateLocation = async (req, res) => {
 
     lead.leadDetails.location = location.trim();
     lead.lastEditedAt = new Date();
+    lead.lastEditedBy = req.user._id; 
     await lead.save();
 
     await notifyAllExceptAdmin(
@@ -770,6 +779,7 @@ exports.updatePrimaryContact = async (req, res) => {
     // Save as array of objects: [{ number: "1234567890" }]
     lead.leadDetails.contacts = contacts.map((number) => ({ number }));
 lead.lastEditedAt = new Date();
+lead.lastEditedBy = req.user._id; 
     await lead.save();
 
     res.json({ message: 'Contacts updated successfully', contacts: lead.leadDetails.contacts });
@@ -900,6 +910,7 @@ exports.addNote = async (req, res) => {
       addedBy: req.user._id,
     });
     lead.lastEditedAt = new Date();
+    lead.lastEditedBy = req.user._id; 
     await lead.save();
 
     const updatedLead = await Lead.findById(leadId).populate('notes.addedBy', 'name');
@@ -937,6 +948,7 @@ exports.markLeadAsDead = async (req, res) => {
       });
     }
     lead.lastEditedAt = new Date();
+    lead.lastEditedBy = req.user._id; 
     await lead.save();
 
     await notifyAllExceptAdmin(
@@ -994,6 +1006,7 @@ exports.updateLifecycleStatus = async (req, res) => {
       lead.deletedAt = null;
     }
     lead.lastEditedAt = new Date();
+    lead.lastEditedBy = req.user._id; 
     await lead.save();
     res.status(200).json({ message: 'Lifecycle status updated', lead });
   } catch (err) {

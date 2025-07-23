@@ -74,6 +74,8 @@ lifecycleStatus: {
 
 lastEditedAt: { type: Date, default: Date.now },
 
+lastEditedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+
     remarks: { type: String },  
     date: { type: Date }, 
     remarksHistory: [
