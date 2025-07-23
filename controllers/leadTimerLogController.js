@@ -50,3 +50,21 @@ exports.getAllLeadTimerLogs = async (req, res) => {
     res.status(500).json({ message: 'Failed to load timer logs', error: err.message });
   }
 };
+
+exports.getLeadTimerLogsByLead = async (req, res) => {
+  try {
+    const { leadId } = req.params;
+    const logs = await LeadTimerLog.find({ lead: leadId })
+      .populate('stoppedBy', 'name email')
+      .sort({ createdAt: -1 });
+    const logsWithStoppedAt = logs.map(log => ({
+      ...log._doc,
+      stoppedAt: log.createdAt,
+      stoppedByName: log.stoppedByName || (log.stoppedBy?.name || 'Unknown'),
+    }));
+
+    res.status(200).json({ logs: logsWithStoppedAt });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to load timer logs for lead', error: err.message });
+  }
+};
