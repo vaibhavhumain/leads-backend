@@ -790,7 +790,7 @@ exports.filterLeads = async (req, res) => {
       const start = new Date(date);
       const end = new Date(start);
       end.setDate(end.getDate() + 1);
-      filter.createdAt = { $gte: start, $lt: end };
+      filter.lastEditedAt = { $gte: start, $lte: end };
     }
 
     if (connectionStatus === 'Connected' || connectionStatus === 'Not Connected') {
