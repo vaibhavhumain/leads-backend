@@ -947,7 +947,7 @@ exports.markLeadAsDead = async (req, res) => {
 
     // Mark as dead
     lead.lifecycleStatus = 'dead';
-    lead.deletedAt = new Date();
+    lead.lifecycleUpdatedAt = new Date();
 
     // Optional: Add a final note
     if (note && note.trim()) {
@@ -1011,10 +1011,11 @@ exports.updateLifecycleStatus = async (req, res) => {
 
     lead.lifecycleStatus = lifecycleStatus;
     if (lifecycleStatus === 'dead') {
-      lead.deletedAt = new Date();
-    } else {
-      lead.deletedAt = null;
-    }
+  lead.lifecycleUpdatedAt = new Date();
+} else {
+  lead.lifecycleUpdatedAt = null;
+}
+
     lead.lastEditedAt = new Date();
     lead.lastEditedBy = req.user._id; 
     await lead.save();

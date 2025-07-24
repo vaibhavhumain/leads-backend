@@ -73,6 +73,10 @@ lifecycleStatus: {
   default: 'active'
 },
 
+lifecycleUpdatedAt: {
+  type: Date,  
+},
+
 lastEditedAt: { type: Date, default: Date.now },
 
 lastEditedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
