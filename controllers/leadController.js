@@ -1039,24 +1039,35 @@ exports.getEditedDates = async (req, res) => {
 
 exports.getLeadsEditedReport = async (req, res) => {
   try {
-    const { date, userId } = req.query;
-    if (!date || !userId) return res.status(400).json({ message: 'date and userId required' });
+    const { date, startDate, endDate, userId } = req.query;
 
-    const start = new Date(date);
-    start.setHours(0,0,0,0);
-    const end = new Date(start);
-    end.setDate(end.getDate() + 1);
+    if (!userId) return res.status(400).json({ message: 'userId is required' });
 
-    const leads = await Lead.find({
-      lastEditedAt: { $gte: start, $lt: end },
-      createdBy: userId, 
-    })
+    const query = { lastEditedBy: userId };
+
+    if (date) {
+      const start = new Date(date);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 1);
+      query.lastEditedAt = { $gte: start, $lt: end };
+    } else if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      query.lastEditedAt = { $gte: start, $lte: end };
+    } else {
+      return res.status(400).json({ message: 'Provide either date or startDate & endDate' });
+    }
+
+    const leads = await Lead.find(query)
       .populate('createdBy', 'name email')
       .populate('followUps.by', 'name')
       .populate('notes.addedBy', 'name');
- 
+
     res.status(200).json({ leads });
   } catch (err) {
-    res.status(500).json({ message: "Failed to fetch leads", error: err.message });
+    console.error('❌ Error fetching edited leads:', err);
+    res.status(500).json({ message: 'Failed to fetch leads', error: err.message });
   }
 };
