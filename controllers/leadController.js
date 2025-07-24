@@ -776,7 +776,7 @@ exports.updatePrimaryContact = async (req, res) => {
 
     let matched = false;
     contacts.forEach((c) => {
-      if (c._id.toString() === _id) {
+      if (c._id && c._id.toString() === _id) {
         c.isPrimary = true;
         matched = true;
       } else {
