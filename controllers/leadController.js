@@ -1081,3 +1081,28 @@ exports.getLeadsEditedReport = async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch leads', error: err.message });
   }
 };
+
+
+exports.updateContacts = async (req, res) => {
+  const { contacts } = req.body;
+  const { id } = req.params;
+
+  if (!Array.isArray(contacts)) {
+    return res.status(400).json({ message: 'Contacts must be an array' });
+  }
+
+  try {
+    const lead = await Lead.findById(id);
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+
+    lead.leadDetails.contacts = contacts;
+    lead.lastEditedAt = new Date();
+    lead.lastEditedBy = req.user._id;
+    await lead.save();
+
+    res.status(200).json({ message: 'Contacts updated', contacts });
+  } catch (error) {
+    console.error('Update contacts error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
