@@ -22,7 +22,8 @@ const leadSchema = new mongoose.Schema(
   type: [
     {
       number: { type: String }, 
-      label: { type: String, default: "Primary" }
+      label: { type: String, default: "Primary" },
+      isPrimary: { type: Boolean, default: false } 
     }
   ],
   required: false,

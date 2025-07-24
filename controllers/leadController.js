@@ -760,32 +760,42 @@ exports.updateLocation = async (req, res) => {
 };
 
 exports.updatePrimaryContact = async (req, res) => {
-  const { contacts } = req.body; // Expecting an array of strings
+  const { _id } = req.body; // contact _id to be marked primary
+  const { id } = req.params; // lead ID
 
-  // Validate input
-  if (!Array.isArray(contacts) || contacts.length === 0) {
-    return res.status(400).json({ message: 'Contacts must be a non-empty array' });
-  }
-
-  const isValid = contacts.every((c) => /^\d{10}$/.test(c));
-  if (!isValid) {
-    return res.status(400).json({ message: 'Each contact must be a valid 10-digit number' });
-  }
+  if (!_id) return res.status(400).json({ message: 'Contact _id is required' });
 
   try {
-    const lead = await Lead.findById(req.params.id);
+    const lead = await Lead.findById(id);
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
 
-    // Save as array of objects: [{ number: "1234567890" }]
-    lead.leadDetails.contacts = contacts.map((number) => ({ number }));
-lead.lastEditedAt = new Date();
-lead.lastEditedBy = req.user._id; 
+    const contacts = lead.leadDetails.contacts;
+    if (!Array.isArray(contacts)) {
+      return res.status(400).json({ message: 'No contacts found in this lead' });
+    }
+
+    let matched = false;
+    contacts.forEach((c) => {
+      if (c._id.toString() === _id) {
+        c.isPrimary = true;
+        matched = true;
+      } else {
+        c.isPrimary = false;
+      }
+    });
+
+    if (!matched) {
+      return res.status(404).json({ message: 'No contact matched the given _id' });
+    }
+
+    lead.lastEditedAt = new Date();
+    lead.lastEditedBy = req.user._id;
     await lead.save();
 
-    res.json({ message: 'Contacts updated successfully', contacts: lead.leadDetails.contacts });
+    res.status(200).json({ message: 'Primary contact updated', contacts: lead.leadDetails.contacts });
   } catch (err) {
     console.error('Update contact error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
 
@@ -1042,7 +1052,7 @@ exports.getLeadsEditedReport = async (req, res) => {
     const { date, startDate, endDate, userId } = req.query;
 
     if (!userId) return res.status(400).json({ message: 'userId is required' });
-
+ 
     const query = { lastEditedBy: userId };
 
     if (date) {
