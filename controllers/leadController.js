@@ -857,29 +857,9 @@ exports.filterLeads = async (req, res) => {
 
 exports.getFollowUpDates = async (req, res) => {
   try {
-    const isAdmin = req.user?.role === 'admin'; // make sure req.user is populated by auth middleware
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const matchStage = isAdmin
-      ? { $match: { 'followUps.0': { $exists: true } } }
-      : {
-          $match: {
-            followUps: {
-              $elemMatch: {
-                date: { $gte: today }
-              }
-            }
-          }
-        };
-
     const pipeline = [
-      matchStage,
+      { $match: { 'followUps.0': { $exists: true } } },
       { $unwind: '$followUps' },
-      ...(isAdmin
-        ? []
-        : [{ $match: { 'followUps.date': { $gte: today } } }]),
       {
         $group: {
           _id: {
