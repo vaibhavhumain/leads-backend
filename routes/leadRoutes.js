@@ -33,6 +33,7 @@ const {
   getDeadLeads,
   updateLifecycleStatus,
   getEditedDates,
+  updateContacts,
   getLeadsEditedReport,
 } = require('../controllers/leadController');
 
@@ -67,6 +68,7 @@ router.put('/:id/status', protect, updateLeadStatus);
 router.put('/:id/connection-status', protect, updateConnectionStatus);
 router.put('/:id/company-name', protect, updateCompanyName);
 router.put('/:id/location', protect, updateLocation);
+router.put('/:id/update-contacts', protect, updateContacts);
 router.put('/:id/primary-contact', protect , updatePrimaryContact);
 router.put('/:id/lifecycle', protect, updateLifecycleStatus);
 
