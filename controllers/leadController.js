@@ -860,8 +860,16 @@ exports.filterLeads = async (req, res) => {
 
 exports.getFollowUpDates = async (req, res) => {
   try {
+    const matchStage = {
+      'followUps.0': { $exists: true }
+    };
+
+    if(req.user.role !== 'admin') 
+    {
+      matchStage.createdBy = req.user._id; 
+    }
     const pipeline = [
-      { $match: { 'followUps.0': { $exists: true } } },
+      { $match: matchStage },
       { $unwind: '$followUps' },
       {
         $group: {
