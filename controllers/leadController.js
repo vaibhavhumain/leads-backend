@@ -804,7 +804,10 @@ exports.filterLeads = async (req, res) => {
   const { date, connectionStatus, status, hasFollowUps, followUpDate } = req.query;
 
   try {
-    const filter = {};
+    const filter = {}
+      if(req.user.role !== 'admin'){
+      filter.createdBy = req.user._id;
+      }
 
     if (date) {
       const start = new Date(date);
@@ -1011,8 +1014,16 @@ exports.updateLifecycleStatus = async (req, res) => {
 
 exports.getEditedDates = async (req, res) => {
   try {
+    const userId = req.user?._id?.toString() || req.user?.id?.toString();
+    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+
     const dates = await Lead.aggregate([
-      { $match: { lastEditedAt: { $exists: true, $ne: null } } },
+      {
+        $match: {
+          lastEditedAt: { $exists: true, $ne: null },
+          createdBy: userId 
+        }
+      },
       {
         $group: {
           _id: {
@@ -1027,6 +1038,7 @@ exports.getEditedDates = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch edited dates" });
   }
 };
+
 
 exports.getLeadsEditedReport = async (req, res) => {
   try {
