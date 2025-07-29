@@ -1107,3 +1107,34 @@ exports.updateContacts = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
+exports.getEditedLeads = async (req, res) => {
+  try {
+    const { startDate, endDate, date, userId } = req.query;
+
+    const leads = await Lead.find({
+      lastEditedAt: {
+        $gte: new Date(startDate || date),
+        $lte: new Date(endDate || date),
+      },
+      ...(userId && { editedBy: userId }),
+    })
+      .populate("createdBy", "name email")
+      .sort({ lastEditedAt: -1 });
+
+    const leadsWithTimerLogs = await Promise.all(
+      leads.map(async (lead) => {
+        const timerLogs = await LeadTimerLog.find({ lead: lead._id });
+        return {
+          ...lead.toObject(),
+          timerLogs,
+        };
+      })
+    );
+
+    res.status(200).json({ leads: leadsWithTimerLogs });
+  } catch (err) {
+    console.error("Failed to fetch edited leads:", err);
+    res.status(500).json({ message: "Could not fetch edited leads." });
+  }
+};
