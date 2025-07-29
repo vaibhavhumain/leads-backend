@@ -2,6 +2,7 @@ const Lead = require('../models/Lead');
 const User = require('../models/User');
 const notifyAllExceptAdmin = require('../config/createNotifications');
 const sendLeadNotificationEmail = require('../utils/sendLeadNotificationEmail');
+const TimerLog = require('../models/LeadTimerLog')
 // Create a new lead
 exports.createLead = async (req, res) => {
   const { leadDetails } = req.body;
@@ -1053,7 +1054,7 @@ exports.getLeadsEditedReport = async (req, res) => {
     const { date, startDate, endDate, userId } = req.query;
 
     if (!userId) return res.status(400).json({ message: 'userId is required' });
- 
+
     const query = { lastEditedBy: userId };
 
     if (date) {
@@ -1071,18 +1072,29 @@ exports.getLeadsEditedReport = async (req, res) => {
       return res.status(400).json({ message: 'Provide either date or startDate & endDate' });
     }
 
+    // 🔍 Fetch leads first
     const leads = await Lead.find(query)
       .populate('createdBy', 'name email')
       .populate('followUps.by', 'name')
       .populate('notes.addedBy', 'name');
 
-    res.status(200).json({ leads });
+    // 🔁 Attach timer logs to each lead
+    const leadsWithTimerLogs = await Promise.all(
+      leads.map(async (lead) => {
+        const timerLogs = await TimerLog.find({ lead: lead._id });
+        return {
+          ...lead.toObject(),
+          timerLogs,
+        };
+      })
+    );
+
+    res.status(200).json({ leads: leadsWithTimerLogs });
   } catch (err) {
     console.error('❌ Error fetching edited leads:', err);
     res.status(500).json({ message: 'Failed to fetch leads', error: err.message });
   }
 };
-
 
 exports.updateContacts = async (req, res) => {
   const { contacts } = req.body;
