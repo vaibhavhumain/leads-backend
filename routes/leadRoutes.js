@@ -36,6 +36,7 @@ const {
   updateContacts,
   getLeadsEditedReport,
   getEditedLeads,
+  getFollowUpSuggestions,
 } = require('../controllers/leadController');
 
 const { protect, admin } = require('../middleware/authMiddleware');
@@ -43,6 +44,7 @@ const { protect, admin } = require('../middleware/authMiddleware');
 const router = express.Router();
 
 // ✅ Specific routes first
+router.get('/followups/suggestions', protect, getFollowUpSuggestions);
 router.get('/my-leads', protect, getMyLeads);
 router.get('/all', protect, getAllLeads);
 router.get('/forwarded-to-me', protect, getForwardedLeadsToMe);

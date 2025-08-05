@@ -1150,3 +1150,24 @@ exports.getEditedLeads = async (req, res) => {
     res.status(500).json({ message: "Could not fetch edited leads." });
   }
 };
+
+exports.getFollowUpSuggestions = async (req, res) => {
+  try {
+    const leads = await Lead.find({}, 'followUps');
+    const notesSet = new Set();
+
+    leads.forEach(lead => {
+      (lead.followUps || []).forEach(fup => {
+        if (fup.notes && fup.notes.trim()) {
+          notesSet.add(fup.notes.trim());
+        }
+      });
+    });
+
+    const suggestions = Array.from(notesSet).sort((a, b) => a.localeCompare(b));
+    res.status(200).json({ suggestions });
+  } catch (err) {
+    console.error('Error fetching follow-up suggestions:', err);
+    res.status(500).json({ message: 'Failed to fetch follow-up suggestions' });
+  }
+};
