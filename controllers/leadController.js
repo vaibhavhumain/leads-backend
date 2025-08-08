@@ -1200,3 +1200,26 @@ exports.getFollowUpsByUser = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
+exports.getMyLeadCreationDates = async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.id;
+
+    const dates = await Lead.aggregate([
+      { $match: { createdBy: userId } }, 
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m-%d', date: '$createdAt' }
+          }
+        }
+      },
+      { $sort: { _id: -1 } }
+    ]);
+
+    res.status(200).json(dates.map(d => d._id));
+  } catch (err) {
+    console.error('Error fetching your lead creation dates:', err);
+    res.status(500).json({ message: 'Failed to fetch your lead creation dates' });
+  }
+};

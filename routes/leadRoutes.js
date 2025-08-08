@@ -38,6 +38,7 @@ const {
   getEditedLeads,
   getFollowUpSuggestions,
   getFollowUpsByUser,
+  getMyLeadCreationDates,
 } = require('../controllers/leadController');
 
 const { protect, admin } = require('../middleware/authMiddleware');
@@ -87,6 +88,7 @@ router.get('/followup-dates', protect, getFollowUpDates);
 router.get('/edited-dates', protect, getEditedDates);
 router.get('/dead-leads',protect , getDeadLeads);
 router.get('/followUpsByUser', protect, getFollowUpsByUser);
+router.get('/my-lead-creation-dates', protect, getMyLeadCreationDates);
 router.get('/leads-edited', protect, getLeadsEditedReport);
 router.get("/leads-edited-with-timers", protect, getEditedLeads);
 router.get('/', protect, getLeads);   
