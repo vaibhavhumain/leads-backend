@@ -1171,3 +1171,32 @@ exports.getFollowUpSuggestions = async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch follow-up suggestions' });
   }
 };
+
+exports.getFollowUpsByUser = async (req, res) => {
+  const { userId, startDate, endDate } = req.query;
+  if (!userId || !startDate || !endDate) {
+    return res.status(400).json({ message: "Missing required parameters" });
+  }
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  end.setHours(23, 59, 59, 999);
+
+  try {
+    const leads = await Lead.find({
+      followUps: {
+        $elemMatch: {
+          by: userId,
+          date: { $gte: start, $lte: end }
+        }
+      }
+    })
+      .populate('createdBy', 'name email')
+      .populate('followUps.by', 'name')
+      .populate('notes.addedBy', 'name');
+
+    res.status(200).json({ leads });
+  } catch (err) {
+    console.error("Error in getFollowUpsByUser:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
