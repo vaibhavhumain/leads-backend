@@ -39,6 +39,7 @@ const {
   getFollowUpSuggestions,
   getFollowUpsByUser,
   getMyLeadCreationDates,
+  dedupeLeads,
 } = require('../controllers/leadController');
 
 const { protect, admin } = require('../middleware/authMiddleware');
@@ -60,6 +61,7 @@ router.post('/create', protect, createLead);
 router.post('/forward', protect, forwardLead);
 router.post('/followup', protect, addFollowUp);
 router.post('/bulk', protect, bulkCreateLeads);
+router.post('/dedupe',protect , dedupeLeads);
 router.post('/saveActionPlan', protect, saveActionPlan);
 router.post('/:id/add-contact', protect, addContact);
 router.post('/:leadId/activities', protect, addActivity);
