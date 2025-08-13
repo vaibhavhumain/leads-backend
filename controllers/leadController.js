@@ -1224,131 +1224,78 @@ exports.getMyLeadCreationDates = async (req, res) => {
   }
 };
 
+function normalizeNumber(num) {
+  if (!num) return null;
+  let d = String(num).replace(/\D/g, ''); 
+  if (d.startsWith('91')) d = d.slice(2); 
+  d = d.replace(/^0+/, '');               
+  return d || null;
+}
+
 exports.dedupeLeads = async (req, res) => {
-  const { dryRun = true, since, createdByOnly = false } = req.body || {};
-
   try {
-    const match = {};
-    if (since) match.createdAt = { $gte: new Date(since) };
-    if (createdByOnly && req.user) match.createdBy = req.user._id;
+    const { dryRun = true, since, createdByOnly = false } = req.body || {};
 
-    // 1) Project each lead to a unique, normalized list of phone numbers
-    const stageProject = [
-      { $match: match },
-      {
-        $project: {
-          createdAt: 1,
-          // Build an array of normalized phone numbers from contacts
-          normalizedNumbers: {
-            $setUnion: [{
-              $map: {
-                input: {
-                  $filter: {
-                    input: "$leadDetails.contacts",
-                    as: "c",
-                    cond: { $and: [
-                      { $ne: ["$$c", null] },
-                      { $ne: ["$$c.number", null] },
-                      { $ne: [ { $trim: { input: "$$c.number" } }, "" ] }
-                    ]}
-                  }
-                },
-                as: "c",
-                in: ( // normalize: digits only -> drop leading 91 -> drop leading zeros
-                  {
-                    $let: {
-                      vars: {
-                        digitsOnly: {
-                          $regexReplace: {
-                            input: { $trim: { input: "$$c.number" } },
-                            regex: /[^0-9]/g,
-                            replacement: ""
-                          }
-                        }
-                      },
-                      in: {
-                        $let: {
-                          vars: {
-                            drop91: {
-                              $cond: [
-                                { $regexMatch: { input: "$$digitsOnly", regex: /^91/ } },
-                                { $substr: ["$$digitsOnly", 2, { $strLenBytes: "$$digitsOnly" }] },
-                                "$$digitsOnly"
-                              ]
-                            }
-                          },
-                          in: {
-                            $regexReplace: { input: "$$drop91", regex: /^0+/, replacement: "" }
-                          }
-                        }
-                      }
-                    }
-                  }
-                )
-              }
-            }]
-          }
-        }
-      },
-      // Keep only leads that have at least one normalized number
-      { $match: { normalizedNumbers: { $exists: true, $ne: [], $not: { $size: 0 } } } }
-    ];
+    const query = {};
+    if (since) query.createdAt = { $gte: new Date(since) };
+    if (createdByOnly && req.user?._id) query.createdBy = req.user._id;
 
-    // 2) Unwind by number, group by number to find newest keeper per number
-    const pipeline = [
-      ...stageProject,
-      { $unwind: "$normalizedNumbers" },
-      {
-        $group: {
-          _id: "$normalizedNumbers",
-          allLeads: { $push: { leadId: "$_id", createdAt: "$createdAt" } }
-        }
-      },
-      // Sort within each phone group and pick newest as keeper
-      {
-        $project: {
-          toKeep: {
-            $first: { $sortArray: { input: "$allLeads", sortBy: { createdAt: -1 } } }
-          },
-          allIds: {
-            $map: { input: "$allLeads", as: "l", in: "$$l.leadId" }
-          }
+    const leads = await Lead.find(query, {
+      createdAt: 1,
+      'leadDetails.contacts.number': 1,
+    }).lean();
+
+    const newestByPhone = new Map();
+    const phonesByLead = new Map();
+
+    for (const lead of leads) {
+      const leadId = String(lead._id);
+      const createdAt = new Date(lead.createdAt || 0).getTime();
+      const contacts = lead?.leadDetails?.contacts || [];
+      const phoneSet = new Set();
+
+      for (const c of contacts) {
+        const n = normalizeNumber(c?.number);
+        if (!n) continue;
+        phoneSet.add(n);
+
+        const curr = newestByPhone.get(n);
+        if (!curr || createdAt > curr.createdAt) {
+          newestByPhone.set(n, { leadId, createdAt });
         }
       }
-    ];
 
-    const results = await Lead.aggregate(pipeline);
+      phonesByLead.set(leadId, phoneSet);
+    }
 
-    // Build sets of keepers and potential duplicates
-    const keepSet = new Set(results.map(r => String(r.toKeep.leadId)));
-    const dupCandidates = new Set();
-    results.forEach(r => {
-      r.allIds.forEach(id => {
-        const s = String(id);
-        if (!keepSet.has(s)) dupCandidates.add(s);
-      });
-    });
+    const keepSet = new Set();
+    for (const { leadId } of newestByPhone.values()) keepSet.add(leadId);
 
-    // IMPORTANT: Never delete a lead if it's keeper for ANY number
-    // (the logic above already respects this by checking keepSet)
-    const duplicateIds = Array.from(dupCandidates);
+    const dupIds = [];
+    for (const [leadId, phoneSet] of phonesByLead.entries()) {
+      if (phoneSet.size === 0) continue; // skip leads without numbers
+      let isKeeper = false;
+      for (const p of phoneSet) {
+        if (newestByPhone.get(p)?.leadId === leadId) { isKeeper = true; break; }
+      }
+      if (!isKeeper) dupIds.push(leadId);
+    }
 
     const summary = {
-      duplicatesFound: duplicateIds.length,
-      sampleIds: duplicateIds.slice(0, 100),
-      note: duplicateIds.length > 100 ? "Showing first 100 IDs" : undefined
+      duplicatesFound: dupIds.length,
+      sampleIds: dupIds.slice(0, 100),
+      note: dupIds.length > 100 ? 'Showing first 100 IDs' : undefined
     };
 
-    if (dryRun || duplicateIds.length === 0) {
+    if (dryRun || dupIds.length === 0) {
       return res.json({ dryRun: true, ...summary });
     }
 
-    // 3) Delete in bulk
-    const delRes = await Lead.deleteMany({ _id: { $in: duplicateIds } });
+    const delRes = await Lead.deleteMany({ _id: { $in: dupIds } });
     return res.json({ dryRun: false, deleted: delRes.deletedCount });
 
   } catch (err) {
-    console.error("dedupeLeads error:", err);
-    res.status(500).json({ message: "Failed to dedupe leads", error: err.message });
+    console.error('dedupeLeads error:', err);
+    return res.status(500).json({ message: 'Failed to dedupe leads', details: err.message });
   }
 };
