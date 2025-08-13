@@ -40,6 +40,9 @@ const {
   getFollowUpsByUser,
   getMyLeadCreationDates,
   dedupeLeads,
+  deleteOwnLoadsAsDeveloper,
+  deleteOwnLeadsBulkAsDeveloper,
+  deleteOwnLeadsBulkAsDeveloper,
 } = require('../controllers/leadController');
 
 const { protect, admin } = require('../middleware/authMiddleware');
@@ -80,7 +83,9 @@ router.put('/:id/primary-contact', protect , updatePrimaryContact);
 router.put('/:id/lifecycle', protect, updateLifecycleStatus);
 
 // ✅ Deletion
+router.delete('/developer',protect,deleteOwnLeadsBulkAsDeveloper);
 router.delete('/deleteByUser/:id', protect, deleteLeadByUser);
+router.delete('/developer/:id',protect , deleteOwnLoadsAsDeveloper);
 router.delete('/:id', protect, deleteLead);
 router.delete('/', protect, deleteAllLeads);
 

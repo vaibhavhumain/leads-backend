@@ -1299,3 +1299,96 @@ exports.dedupeLeads = async (req, res) => {
     return res.status(500).json({ message: 'Failed to dedupe leads', details: err.message });
   }
 };
+
+exports.deleteOwnLoadsAsDeveloper = async (req,res) => {
+  try {
+    if(req.user?.role !== 'developer')
+    {
+      return res.status(403).json({message:"only developers can use this"});
+    }
+    const {id} = req.params;
+    const lead=await Lead.findById(id).select('createdBy leadDetails.clientName');
+    if(!lead) return res.status(404).json({message:'Lead not found'});
+    const isOwner = lead.createdBy?.toString() === req.user._id.toString();
+    if(!isOwner) {
+      return res.status(403).json({message:'You can delete only leads you created'});
+    }
+    await lead.deleteOne();
+    await notifyAllExceptAdmin(
+      `Lead "${lead.leadDetails?.clientName || id}" deleted by developer ${req.user.name}.`,
+      `/dashboard`
+    );
+
+    return res.status(200).json({ message: 'Lead deleted successfully (developer-owned)' });
+  } catch (err) {
+    console.error('Developer delete error:', err);
+    return res.status(500).json({ message: 'Error deleting lead', error: err.message });
+  }
+  }
+
+  // Bulk delete: developer can delete ONLY the leads they created
+// Body: { dryRun?: boolean = true, startDate?: ISOString, endDate?: ISOString, status?: 'Hot'|'Warm'|'Cold', lifecycleStatus?: 'active'|'dead' }
+exports.deleteOwnLeadsBulkAsDeveloper = async (req, res) => {
+  try {
+    if (req.user?.role !== 'developer') {
+      return res.status(403).json({ message: 'Only developers can bulk delete their own leads' });
+    }
+
+    const {
+      dryRun = true,
+      startDate,  // optional: delete only within createdAt range
+      endDate,    // optional
+      status,     // optional: Hot/Warm/Cold
+      lifecycleStatus // optional: active/dead
+    } = req.body || {};
+
+    const filter = { createdBy: req.user._id };
+
+    if (startDate || endDate) {
+      filter.createdAt = {};
+      if (startDate) filter.createdAt.$gte = new Date(startDate);
+      if (endDate) {
+        const e = new Date(endDate);
+        // include full end day
+        e.setHours(23, 59, 59, 999);
+        filter.createdAt.$lte = e;
+      }
+    }
+
+    if (status && ['Hot', 'Warm', 'Cold'].includes(status)) {
+      filter.status = status;
+    }
+
+    if (lifecycleStatus && ['active', 'dead'].includes(lifecycleStatus)) {
+      filter.lifecycleStatus = lifecycleStatus;
+    }
+
+    // Count first (and return sample)
+    const total = await Lead.countDocuments(filter);
+    if (dryRun) {
+      const sample = await Lead.find(filter).select('_id leadDetails.clientName createdAt').limit(50).lean();
+      return res.json({
+        dryRun: true,
+        totalCandidates: total,
+        sample, // show first 50 so user can confirm
+        note: total > 50 ? 'Sample limited to first 50' : undefined
+      });
+    }
+
+    // REAL delete
+    const result = await Lead.deleteMany(filter);
+    // Optional: notify
+    await notifyAllExceptAdmin(
+      `${req.user.name} (developer) bulk deleted ${result.deletedCount} of their own lead(s).`,
+      '/dashboard'
+    );
+
+    return res.json({
+      dryRun: false,
+      deleted: result.deletedCount
+    });
+  } catch (err) {
+    console.error('Developer bulk delete error:', err);
+    return res.status(500).json({ message: 'Failed to bulk delete leads', error: err.message });
+  }
+};

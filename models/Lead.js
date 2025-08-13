@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const followUpSchema = new mongoose.Schema({
   date: { type: Date, required: true },
   notes: { type: String, required: true },
-  by: { type: mongoose.Schema.Types.ObjectId, ref: 'User' } // ✅ added
+  by: { type: mongoose.Schema.Types.ObjectId, ref: 'User' } 
 });
 
 const forwardedToSchema = new mongoose.Schema({
