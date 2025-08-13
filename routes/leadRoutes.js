@@ -42,7 +42,6 @@ const {
   dedupeLeads,
   deleteOwnLoadsAsDeveloper,
   deleteOwnLeadsBulkAsDeveloper,
-  deleteOwnLeadsBulkAsDeveloper,
 } = require('../controllers/leadController');
 
 const { protect, admin } = require('../middleware/authMiddleware');
