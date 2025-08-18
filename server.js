@@ -8,31 +8,25 @@ connectDB();
 
 const app = express();
 
-// ✅ Always put express.json() before route handling
+// ✅ JSON parser
 app.use(express.json());
 
 // ✅ Serve static files if needed
 app.use(express.static('public'));
 
-// ✅ CORS Configuration
+// ✅ Correct CORS Configuration
 const corsOptions = {
-  origin: ['http://localhost:3000', 'https://leadsmanage.netlify.app'],
+  origin: ['http://localhost:3000', 'https://leadsmanage.netlify.app'], // allowed frontends
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
   credentials: true,
 };
 
+// ✅ Apply CORS once
 app.use(cors(corsOptions));
 
-// ✅ Handle preflight (OPTIONS) requests globally
-app.use(cors(corsOptions));
-
-// ✅ Preflight for all routes
-app.options('*', (req, res) => {
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.sendStatus(200);
-});
+// ✅ Preflight automatically handled by `cors` if you do this:
+app.options('*', cors(corsOptions));
 
 // ✅ Request logger (optional)
 app.use((req, res, next) => {
@@ -53,8 +47,7 @@ const leadTimerLogsRoute = require('./routes/leadTimerLogs');
 const notificationRoutes = require('./routes/notificationRoutes');
 const proposalRoutes = require('./routes/proposalRoutes');
 
-
-// ✅ Route usage
+// ✅ Use routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/leads', leadRoutes);
@@ -64,7 +57,7 @@ app.use('/api/upload', uploadRoute);
 app.use('/api/send', sendRoute);
 app.use('/api/pause-logs', pauseLogRoutes);
 app.use('/api/timer-logs', leadTimerLogsRoute);
-app.use('/api/notifications',notificationRoutes);
+app.use('/api/notifications', notificationRoutes);
 app.use('/api/proposal', proposalRoutes);
 
 // ✅ Root route
