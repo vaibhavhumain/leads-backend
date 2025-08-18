@@ -8,8 +8,9 @@ connectDB();
 
 const app = express();
 
-// ✅ JSON parser
-app.use(express.json());
+// ✅ JSON & URL-encoded parsers with larger limit (fixes 413 errors)
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // ✅ Serve static files if needed
 app.use(express.static('public'));
@@ -18,14 +19,18 @@ app.use(express.static('public'));
 const corsOptions = {
   origin: ['http://localhost:3000', 'https://leadsmanage.netlify.app'], // allowed frontends
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
+  allowedHeaders: [
+    'Origin',
+    'X-Requested-With',
+    'Content-Type',
+    'Accept',
+    'Authorization',
+  ],
   credentials: true,
 };
 
 // ✅ Apply CORS once
 app.use(cors(corsOptions));
-
-// ✅ Preflight automatically handled by `cors` if you do this:
 app.options('*', cors(corsOptions));
 
 // ✅ Request logger (optional)
