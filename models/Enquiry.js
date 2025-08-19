@@ -124,6 +124,7 @@ const enquirySchema = new mongoose.Schema(
     fitmentProvided: [String],
 
     /* ---------- NEW: Luxury model details ---------- */
+    luxuryData: { type: Object, default: {} }, 
     modelName: String, // e.g. "Spider", "Arrow", ...
 
     // Table of standard fitments (each item has key/label/suggested/choice/otherValue)
@@ -155,8 +156,10 @@ const enquirySchema = new mongoose.Schema(
   {
     minimize: false, // keep empty objects if you ever store them
     timestamps: false,
-  }
+  },
 );
+
+
 
 /* Helpful indexes for your queries */
 enquirySchema.index({ lead: 1, createdAt: -1 });

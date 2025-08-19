@@ -194,3 +194,48 @@ exports.getAllPdfsByLead = async (req, res) => {
     return res.status(500).json({ error: 'Server error', details: err.message });
   }
 };
+
+exports.updateLuxuryEnquiry = async (req, res) => {
+  try {
+    const { enquiryId } = req.params;
+    const {
+      modelName,
+      standardFitments,
+      optionalFitmentsSelected,
+      extraCostFitments,
+      customExtras,
+      luxuryData,
+    } = req.body;
+
+    const enquiry = await Enquiry.findOneAndUpdate(
+      { enquiryId },
+      {
+        $set: {
+          modelName,
+          standardFitments,
+          optionalFitmentsSelected,
+          extraCostFitments,
+          customExtras,
+          luxuryData,
+        },
+      },
+      { new: true }
+    );
+
+    if (!enquiry) {
+      return res.status(404).json({ error: 'Enquiry not found' });
+    }
+
+    const pdfBuffer = await generateEnquiryPdf(enquiry);
+    enquiry.pdfData = pdfBuffer;
+    await enquiry.save();
+
+    return res.status(200).json({
+      message: 'Luxury enquiry updated successfully ✅',
+      enquiry,
+    });
+  } catch (err) {
+    console.error('❌ updateLuxuryEnquiry error:', err);
+    return res.status(500).json({ error: 'Server error', details: err.message });
+  }
+};

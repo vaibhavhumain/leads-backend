@@ -4,7 +4,7 @@ const { protect } = require('../middleware/authMiddleware');
 const { generateProposalForLead , downloadProposalPdf } = require('../controllers/proposalController');  
 
 router.get('/generate/:leadId', protect, generateProposalForLead);
-router.get('/download/:id', protect, downloadProposalPdf); // New route
+router.get('/download/:id', protect, downloadProposalPdf); 
  
 
 module.exports = router;
