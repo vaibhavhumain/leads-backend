@@ -3,6 +3,24 @@ const Enquiry = require('../models/Enquiry');
 const generateEnquiryPdf = require('../config/generateEnquiryPdf');
 const notifyAllExceptAdmin = require('../config/createNotifications');
 const mongoose = require("mongoose");
+
+// 🔹 Helper function to generate enquiryId
+function generateEnquiryId(userName) {
+  const initials = userName
+    ? userName.substring(0, 3).toUpperCase()
+    : "USR"; // fallback initials
+
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const hh = String(now.getHours()).padStart(2, '0');
+  const min = String(now.getMinutes()).padStart(2, '0');
+  const ss = String(now.getSeconds()).padStart(2, '0');
+
+  return `GC-${initials}-${yyyy}${mm}${dd}${hh}${min}${ss}`;
+}
+
 exports.createEnquiry = async (req, res) => {
   try {
     const data = req.body;
@@ -22,31 +40,28 @@ exports.createEnquiry = async (req, res) => {
       return res.status(404).json({ error: 'Lead not found. Please re-import or refresh leads.' });
     }
 
-    // Create new enquiry linked to that lead
-    // Always use authenticated user's id as createdBy, not from client
-const enquiry = await Enquiry.create({
-  enquiryId: `ENQ-${Date.now()}`,
-  ...data,
-  lead: lead._id,
-  createdBy: req.user._id,  // Always set here!
-});
+    // 👇 Generate custom enquiryId
+    const enquiryId = generateEnquiryId(req.user?.name);
 
+    const enquiry = await Enquiry.create({
+      enquiryId,
+      ...data,
+      lead: lead._id,
+      createdBy: req.user._id,
+    });
 
-    // Generate PDF and attach it
     const pdfBuffer = await generateEnquiryPdf(enquiry);
     enquiry.pdfData = pdfBuffer;
     await enquiry.save();
 
-    // ✅ Send in-app notification to all users except admin
     await notifyAllExceptAdmin(
-      `A new enquiry (${enquiry.enquiryId}) has been created for lead "${lead.clientName || lead.name}" by ${req.user?.name || 'a user'}.`,
+      `A new enquiry (${enquiry.enquiryId}) has been created for lead "${lead.leadDetails?.clientName || lead.name}" by ${req.user?.name || 'a user'}.`,
       `/leadDetails?leadId=${lead._id}`
     );
 
-    // Respond to frontend
     res.status(200).json({
       message: 'Enquiry submitted successfully ✅',
-      enquiryId: enquiry._id,
+      enquiryId: enquiry.enquiryId,
       leadId: lead._id,
     });
   } catch (err) {
@@ -55,15 +70,14 @@ const enquiry = await Enquiry.create({
   }
 };
 
-// ✅ Controller to serve the stored PDF
 exports.downloadEnquiryPdf = async (req, res) => {
   try {
     const enquiry = await Enquiry.findOne({ enquiryId: req.params.id });
 
-    // Secure: Only allow if admin or the creator
     if (!enquiry || !enquiry.pdfData) {
       return res.status(404).json({ error: 'PDF not found' });
     }
+
     if (
       (!req.user || req.user.role !== 'admin') &&
       enquiry.createdBy.toString() !== req.user._id.toString()
@@ -83,16 +97,15 @@ exports.downloadEnquiryPdf = async (req, res) => {
 exports.getAllPdfsByLead = async (req, res) => {
   try {
     const leadIdParam = req.params.leadId;
-
-    // Log for debugging
     console.log('[getAllPdfsByLead] leadId param:', leadIdParam);
 
     if (!mongoose.Types.ObjectId.isValid(leadIdParam)) {
       return res.status(400).json({ error: 'Invalid leadId format' });
     }
-    const leadObjectId = new mongoose.Types.ObjectId(leadIdParam);
 
+    const leadObjectId = new mongoose.Types.ObjectId(leadIdParam);
     let query = { lead: leadObjectId };
+
     if (!req.user || req.user.role !== 'admin') {
       query.createdBy = req.user._id;
     }
