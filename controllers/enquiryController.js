@@ -239,3 +239,23 @@ exports.updateLuxuryEnquiry = async (req, res) => {
     return res.status(500).json({ error: 'Server error', details: err.message });
   }
 };
+
+exports.saveLuxuryDetails = async (req, res) => {
+  try {
+    const { enquiryId } = req.params;
+    const enquiry = await Enquiry.findOne({ enquiryId });
+
+    if (!enquiry) {
+      return res.status(404).json({ error: 'Enquiry not found' });
+    }
+
+    // attach/update luxury details
+    enquiry.luxuryDetails = req.body;
+    await enquiry.save();
+
+    return res.status(200).json({ message: 'Luxury details saved ✅' });
+  } catch (err) {
+    console.error('❌ saveLuxuryDetails error:', err);
+    return res.status(500).json({ error: 'Server error', details: err.message });
+  }
+};

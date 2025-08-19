@@ -5,7 +5,8 @@ const {
   createEnquiry,
   downloadEnquiryPdf,
   getAllPdfsByLead,
-  updateLuxuryEnquiry,   
+  updateLuxuryEnquiry,
+  saveLuxuryDetails   // ✅ ADD THIS
 } = require('../controllers/enquiryController');
 
 router.post('/', protect, createEnquiry);
@@ -14,6 +15,6 @@ router.get('/pdf/:id', protect, downloadEnquiryPdf);
 
 router.get('/all-pdfs/:leadId', protect, getAllPdfsByLead);
 
-router.post('/luxury/:enquiryId', protect, updateLuxuryEnquiry);
+router.post('/luxury/:enquiryId', protect, saveLuxuryDetails); // ✅ now works
 
 module.exports = router;
