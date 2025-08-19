@@ -4,12 +4,9 @@ const generateEnquiryPdf = require('../config/generateEnquiryPdf');
 const notifyAllExceptAdmin = require('../config/createNotifications');
 const mongoose = require("mongoose");
 
-// 🔹 Helper function to generate enquiryId
+// server-side enquiryId generator
 function generateEnquiryId(userName) {
-  const initials = userName
-    ? userName.substring(0, 3).toUpperCase()
-    : "USR"; // fallback initials
-
+  const initials = userName ? userName.substring(0, 3).toUpperCase() : "USR";
   const now = new Date();
   const yyyy = now.getFullYear();
   const mm = String(now.getMonth() + 1).padStart(2, '0');
@@ -17,20 +14,55 @@ function generateEnquiryId(userName) {
   const hh = String(now.getHours()).padStart(2, '0');
   const min = String(now.getMinutes()).padStart(2, '0');
   const ss = String(now.getSeconds()).padStart(2, '0');
-
   return `GC-${initials}-${yyyy}${mm}${dd}${hh}${min}${ss}`;
+}
+
+// sanitize incoming payload to avoid validation errors
+function sanitizePayload(data) {
+  const numberFields = [
+    'businessNumberOfBuses',
+    'businessBusesPerYear',
+    'businessEmployees',
+    'numberOfSeats',
+    'totalSeats',
+  ];
+
+  const out = { ...data };
+
+  // never accept enquiryId from the client
+  delete out.enquiryId;
+
+  // drop empty strings / null / undefined
+  Object.keys(out).forEach((k) => {
+    if (out[k] === '' || out[k] === null || out[k] === undefined) {
+      delete out[k];
+    }
+  });
+
+  // coerce number fields; if NaN, drop them
+  numberFields.forEach((k) => {
+    if (out[k] !== undefined) {
+      const n = Number(out[k]);
+      if (Number.isNaN(n)) delete out[k];
+      else out[k] = n;
+    }
+  });
+
+  // if customerType is empty, drop it to avoid enum error
+  if (!out.customerType) delete out.customerType;
+
+  return out;
 }
 
 exports.createEnquiry = async (req, res) => {
   try {
-    const data = req.body;
-    const createdBy = data.createdBy || req.user?._id;
-
+    // base auth + lead checks
+    const createdBy = req.body.createdBy || req.user?._id;
     if (!createdBy) {
       return res.status(400).json({ error: '`createdBy` is required' });
     }
 
-    const leadId = data.leadId;
+    const leadId = req.body.leadId;
     if (!leadId) {
       return res.status(400).json({ error: 'leadId is required! No lead will be created from enquiry form.' });
     }
@@ -40,33 +72,44 @@ exports.createEnquiry = async (req, res) => {
       return res.status(404).json({ error: 'Lead not found. Please re-import or refresh leads.' });
     }
 
-    // 👇 Generate custom enquiryId
+    // sanitize user input
+    const clean = sanitizePayload(req.body);
+
+    // generate server enquiryId (server source of truth)
     const enquiryId = generateEnquiryId(req.user?.name);
 
+    // IMPORTANT: put enquiryId LAST so client can't overwrite it
     const enquiry = await Enquiry.create({
-      enquiryId,
-      ...data,
+      ...clean,
       lead: lead._id,
       createdBy: req.user._id,
+      enquiryId,
     });
 
+    // generate + attach PDF
     const pdfBuffer = await generateEnquiryPdf(enquiry);
     enquiry.pdfData = pdfBuffer;
     await enquiry.save();
 
+    // notify
     await notifyAllExceptAdmin(
       `A new enquiry (${enquiry.enquiryId}) has been created for lead "${lead.leadDetails?.clientName || lead.name}" by ${req.user?.name || 'a user'}.`,
       `/leadDetails?leadId=${lead._id}`
     );
 
-    res.status(200).json({
+    return res.status(200).json({
       message: 'Enquiry submitted successfully ✅',
       enquiryId: enquiry.enquiryId,
       leadId: lead._id,
     });
   } catch (err) {
+    // return 400 for known Mongoose validation errors
+    if (err?.name === 'ValidationError') {
+      console.error('❌ Enquiry validation error:', err);
+      return res.status(400).json({ error: 'Validation error', details: err.message });
+    }
     console.error('❌ Backend error:', err);
-    res.status(500).json({ error: 'Server error', details: err.message });
+    return res.status(500).json({ error: 'Server error', details: err.message });
   }
 };
 
@@ -87,10 +130,10 @@ exports.downloadEnquiryPdf = async (req, res) => {
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename=${enquiry.enquiryId}.pdf`);
-    res.send(enquiry.pdfData);
+    return res.send(enquiry.pdfData);
   } catch (err) {
     console.error('❌ Download error:', err);
-    res.status(500).json({ error: 'Server error', details: err.message });
+    return res.status(500).json({ error: 'Server error', details: err.message });
   }
 };
 
@@ -104,18 +147,17 @@ exports.getAllPdfsByLead = async (req, res) => {
     }
 
     const leadObjectId = new mongoose.Types.ObjectId(leadIdParam);
-    let query = { lead: leadObjectId };
+    const query = {
+      lead: leadObjectId,
+      ...(req.user?.role !== 'admin' ? { createdBy: req.user._id } : {}),
+    };
 
-    if (!req.user || req.user.role !== 'admin') {
-      query.createdBy = req.user._id;
-    }
-
-    const enquiries = await Enquiry.find(query);
+    const enquiries = await Enquiry.find(query).sort({ createdAt: -1 });
     if (!enquiries.length) {
       return res.status(404).json({ error: 'No enquiries found' });
     }
 
-    res.status(200).json(
+    return res.status(200).json(
       enquiries.map(e => ({
         enquiryId: e.enquiryId,
         createdAt: e.createdAt,
@@ -124,6 +166,6 @@ exports.getAllPdfsByLead = async (req, res) => {
     );
   } catch (err) {
     console.error('❌ getAllPdfsByLead error:', err);
-    res.status(500).json({ error: 'Server error', details: err.message });
+    return res.status(500).json({ error: 'Server error', details: err.message });
   }
 };
