@@ -4,8 +4,8 @@ const generateEnquiryPdf = require('../config/generateEnquiryPdf');
 const notifyAllExceptAdmin = require('../config/createNotifications');
 const mongoose = require("mongoose");
 
-// server-side enquiryId generator
-function generateEnquiryId(userName) {
+// ---- Build BASE (no sequence here) ----
+function buildBaseEnquiryId(userName) {
   const initials = userName ? userName.substring(0, 3).toUpperCase() : "USR";
   const now = new Date();
   const yyyy = now.getFullYear();
@@ -14,7 +14,38 @@ function generateEnquiryId(userName) {
   return `GC-${initials}-${yyyy}${mm}${dd}`;
 }
 
-// sanitize incoming payload to avoid validation errors
+// ---- Given a lead + base, compute the next XX suffix safely ----
+async function nextSequencedIdForLead(baseId, leadObjectId) {
+  // Match either exact base ("GC-...-YYYYMMDD") OR suffixed ("GC-...-YYYYMMDD-XX")
+  const regex = new RegExp(`^${baseId}(?:-(\\d{2}))?$`);
+
+  // Pull only enquiryId to keep it light
+  const existing = await Enquiry
+    .find({ lead: leadObjectId, enquiryId: { $regex: regex } }, { enquiryId: 1 })
+    .lean();
+
+  let maxSuffix = 0;
+  let hasExactBase = false;
+
+  for (const { enquiryId } of existing) {
+    if (enquiryId === baseId) {
+      hasExactBase = true;          // old unsuffixed record -> treat as 01
+      continue;
+    }
+    const m = enquiryId.match(/-(\d{2})$/);
+    if (m) {
+      const num = parseInt(m[1], 10);
+      if (!Number.isNaN(num) && num > maxSuffix) maxSuffix = num;
+    }
+  }
+
+  const next = maxSuffix > 0 ? maxSuffix + 1 : (hasExactBase ? 2 : 1);
+  const pad2 = String(next).padStart(2, '0');
+
+  return `${baseId}-${pad2}`;
+}
+
+// ---- Sanitize incoming payload ----
 function sanitizePayload(data) {
   const numberFields = [
     'businessNumberOfBuses',
@@ -23,20 +54,13 @@ function sanitizePayload(data) {
     'numberOfSeats',
     'totalSeats',
   ];
-
   const out = { ...data };
+  delete out.enquiryId; // never trust client
 
-  // never accept enquiryId from the client
-  delete out.enquiryId;
-
-  // drop empty strings / null / undefined
   Object.keys(out).forEach((k) => {
-    if (out[k] === '' || out[k] === null || out[k] === undefined) {
-      delete out[k];
-    }
+    if (out[k] === '' || out[k] === null || out[k] === undefined) delete out[k];
   });
 
-  // coerce number fields; if NaN, drop them
   numberFields.forEach((k) => {
     if (out[k] !== undefined) {
       const n = Number(out[k]);
@@ -45,50 +69,56 @@ function sanitizePayload(data) {
     }
   });
 
-  // if customerType is empty, drop it to avoid enum error
-  if (!out.customerType) delete out.customerType;
-
+  if (!out.customerType) delete out.customerType; // avoid enum error
   return out;
 }
 
 exports.createEnquiry = async (req, res) => {
   try {
-    // base auth + lead checks
+    // ---- Auth & lead checks ----
     const createdBy = req.body.createdBy || req.user?._id;
     if (!createdBy) {
       return res.status(400).json({ error: '`createdBy` is required' });
     }
-
     const leadId = req.body.leadId;
     if (!leadId) {
       return res.status(400).json({ error: 'leadId is required! No lead will be created from enquiry form.' });
     }
-
     const lead = await Lead.findById(leadId);
     if (!lead) {
       return res.status(404).json({ error: 'Lead not found. Please re-import or refresh leads.' });
     }
 
-    // sanitize user input
     const clean = sanitizePayload(req.body);
+    const baseId = buildBaseEnquiryId(req.user?.name);
 
-    // generate server enquiryId (server source of truth)
-    const enquiryId = generateEnquiryId(req.user?.name);
+    // ---- Create with sequence & tiny retry on collision ----
+    let enquiry;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const enquiryId = await nextSequencedIdForLead(baseId, lead._id);
+      try {
+        enquiry = await Enquiry.create({
+          ...clean,
+          lead: lead._id,
+          createdBy: req.user._id,
+          enquiryId, // server-owned
+        });
+        break; // success
+      } catch (e) {
+        if (e?.code === 11000 && attempt < 2) {
+          // race: someone inserted same suffix just now -> re-loop to pick next suffix
+          continue;
+        }
+        throw e;
+      }
+    }
 
-    // IMPORTANT: put enquiryId LAST so client can't overwrite it
-    const enquiry = await Enquiry.create({
-      ...clean,
-      lead: lead._id,
-      createdBy: req.user._id,
-      enquiryId,
-    });
-
-    // generate + attach PDF
+    // ---- Generate & attach PDF ----
     const pdfBuffer = await generateEnquiryPdf(enquiry);
     enquiry.pdfData = pdfBuffer;
     await enquiry.save();
 
-    // notify
+    // ---- Notify ----
     await notifyAllExceptAdmin(
       `A new enquiry (${enquiry.enquiryId}) has been created for lead "${lead.leadDetails?.clientName || lead.name}" by ${req.user?.name || 'a user'}.`,
       `/leadDetails?leadId=${lead._id}`
@@ -100,13 +130,13 @@ exports.createEnquiry = async (req, res) => {
       leadId: lead._id,
     });
   } catch (err) {
-    // return 400 for known Mongoose validation errors
     if (err?.name === 'ValidationError') {
       console.error('❌ Enquiry validation error:', err);
       return res.status(400).json({ error: 'Validation error', details: err.message });
     }
+    const status = err?.code === 11000 ? 409 : 500;
     console.error('❌ Backend error:', err);
-    return res.status(500).json({ error: 'Server error', details: err.message });
+    return res.status(status).json({ error: 'Server error', details: err.message });
   }
 };
 
@@ -137,8 +167,6 @@ exports.downloadEnquiryPdf = async (req, res) => {
 exports.getAllPdfsByLead = async (req, res) => {
   try {
     const leadIdParam = req.params.leadId;
-    console.log('[getAllPdfsByLead] leadId param:', leadIdParam);
-
     if (!mongoose.Types.ObjectId.isValid(leadIdParam)) {
       return res.status(400).json({ error: 'Invalid leadId format' });
     }
