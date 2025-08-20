@@ -13,7 +13,6 @@ async function generateProposalPdf(enquiryData) {
     const { x = 50, yStart = 750, lineGap = 25, fontSize = 16, color = rgb(0, 0, 0) } = options;
     let y = yStart;
 
-    // ✨ Add watermark logo
     const { width, height } = page.getSize();
     const logoDims = logoImage.scale(0.2);
     page.drawImage(logoImage, {
@@ -24,7 +23,6 @@ async function generateProposalPdf(enquiryData) {
       opacity: 0.15,
     });
 
-    // 🖋️ Draw text content
     textLines.forEach(line => {
       page.drawText(line, { x, y, size: fontSize, font, color });
       y -= lineGap;
