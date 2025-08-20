@@ -3,8 +3,8 @@ const Enquiry = require('../models/Enquiry');
 const generateEnquiryPdf = require('../config/generateEnquiryPdf');
 const notifyAllExceptAdmin = require('../config/createNotifications');
 const mongoose = require("mongoose");
+const { mapLuxuryToFitments } = require('../utils/mapLuxuryToFitments');
 
-// ---- Build BASE (no sequence here) ----
 function buildBaseEnquiryId(userName) {
   const initials = userName ? userName.substring(0, 3).toUpperCase() : "USR";
   const now = new Date();
@@ -14,12 +14,8 @@ function buildBaseEnquiryId(userName) {
   return `GC-${initials}-${yyyy}${mm}${dd}`;
 }
 
-// ---- Given a lead + base, compute the next XX suffix safely ----
 async function nextSequencedIdForLead(baseId, leadObjectId) {
-  // Match either exact base ("GC-...-YYYYMMDD") OR suffixed ("GC-...-YYYYMMDD-XX")
   const regex = new RegExp(`^${baseId}(?:-(\\d{2}))?$`);
-
-  // Pull only enquiryId to keep it light
   const existing = await Enquiry
     .find({ lead: leadObjectId, enquiryId: { $regex: regex } }, { enquiryId: 1 })
     .lean();
@@ -28,24 +24,21 @@ async function nextSequencedIdForLead(baseId, leadObjectId) {
   let hasExactBase = false;
 
   for (const { enquiryId } of existing) {
-    if (enquiryId === baseId) {
-      hasExactBase = true;          // old unsuffixed record -> treat as 01
-      continue;
-    }
+    if (enquiryId === baseId) { hasExactBase = true; continue; }
     const m = enquiryId.match(/-(\d{2})$/);
     if (m) {
       const num = parseInt(m[1], 10);
       if (!Number.isNaN(num) && num > maxSuffix) maxSuffix = num;
     }
   }
-
   const next = maxSuffix > 0 ? maxSuffix + 1 : (hasExactBase ? 2 : 1);
   const pad2 = String(next).padStart(2, '0');
-
   return `${baseId}-${pad2}`;
 }
 
-// ---- Sanitize incoming payload ----
+/* ---------------------------------------
+ * Sanitizer (kept, with small safety tweaks)
+ * ------------------------------------- */
 function sanitizePayload(data) {
   const numberFields = [
     'businessNumberOfBuses',
@@ -55,10 +48,15 @@ function sanitizePayload(data) {
     'totalSeats',
   ];
   const out = { ...data };
-  delete out.enquiryId; // never trust client
+  delete out.enquiryId; // never trust client-id
 
   Object.keys(out).forEach((k) => {
-    if (out[k] === '' || out[k] === null || out[k] === undefined) delete out[k];
+    // keep objects/arrays like luxuryData; only drop explicit empty scalars
+    const v = out[k];
+    const isPlainObj = v && typeof v === 'object' && !Array.isArray(v);
+    if (!isPlainObj && (v === '' || v === null || v === undefined)) {
+      delete out[k];
+    }
   });
 
   numberFields.forEach((k) => {
@@ -75,7 +73,6 @@ function sanitizePayload(data) {
 
 exports.createEnquiry = async (req, res) => {
   try {
-    // ---- Auth & lead checks ----
     const createdBy = req.body.createdBy || req.user?._id;
     if (!createdBy) {
       return res.status(400).json({ error: '`createdBy` is required' });
@@ -90,6 +87,11 @@ exports.createEnquiry = async (req, res) => {
     }
 
     const clean = sanitizePayload(req.body);
+
+    const modelName = clean.modelName || clean.suggestedModel || null;
+    const luxuryData = clean.luxuryData || {};
+    const mapped = mapLuxuryToFitments(luxuryData, modelName);
+
     const baseId = buildBaseEnquiryId(req.user?.name);
 
     // ---- Create with sequence & tiny retry on collision ----
@@ -99,21 +101,25 @@ exports.createEnquiry = async (req, res) => {
       try {
         enquiry = await Enquiry.create({
           ...clean,
+          modelName,
+          luxuryData,
+          standardFitments: mapped.standardFitments,
+          optionalFitmentsSelected: mapped.optionalFitmentsSelected,
+          extraCostFitments: mapped.extraCostFitments,
+          customExtras: mapped.customExtras,
+
           lead: lead._id,
           createdBy: req.user._id,
           enquiryId, // server-owned
         });
         break; // success
       } catch (e) {
-        if (e?.code === 11000 && attempt < 2) {
-          // race: someone inserted same suffix just now -> re-loop to pick next suffix
-          continue;
-        }
+        if (e?.code === 11000 && attempt < 2) continue; // race, try next suffix
         throw e;
       }
     }
 
-    // ---- Generate & attach PDF ----
+    // ---- Generate & attach PDF (server-side) ----
     const pdfBuffer = await generateEnquiryPdf(enquiry);
     enquiry.pdfData = pdfBuffer;
     await enquiry.save();
@@ -140,6 +146,9 @@ exports.createEnquiry = async (req, res) => {
   }
 };
 
+/* ===========================
+ * DOWNLOAD PDF
+ * =========================== */
 exports.downloadEnquiryPdf = async (req, res) => {
   try {
     const enquiry = await Enquiry.findOne({ enquiryId: req.params.id });
@@ -164,6 +173,9 @@ exports.downloadEnquiryPdf = async (req, res) => {
   }
 };
 
+/* ===========================
+ * LIST PDFs BY LEAD
+ * =========================== */
 exports.getAllPdfsByLead = async (req, res) => {
   try {
     const leadIdParam = req.params.leadId;
@@ -195,30 +207,50 @@ exports.getAllPdfsByLead = async (req, res) => {
   }
 };
 
+/* ===========================
+ * UPDATE luxury/model (flexible)
+ * - Accepts raw luxuryData (+ modelName) OR fully-formed arrays
+ * - Always regenerates arrays if luxuryData provided
+ * =========================== */
 exports.updateLuxuryEnquiry = async (req, res) => {
   try {
     const { enquiryId } = req.params;
+
+    // Accept both shapes:
+    // A) raw: { modelName, luxuryData: {...} }
+    // B) arrays: { standardFitments, optionalFitmentsSelected, extraCostFitments, customExtras }
     const {
       modelName,
+      luxuryData,
       standardFitments,
       optionalFitmentsSelected,
       extraCostFitments,
       customExtras,
-      luxuryData,
-    } = req.body;
+    } = req.body || {};
+
+    const update = {};
+
+    if (modelName !== undefined) update.modelName = modelName;
+
+    if (luxuryData !== undefined) {
+      // Raw → map to arrays
+      const mapped = mapLuxuryToFitments(luxuryData || {}, modelName || null);
+      update.luxuryData = luxuryData || {};
+      update.standardFitments = mapped.standardFitments;
+      update.optionalFitmentsSelected = mapped.optionalFitmentsSelected;
+      update.extraCostFitments = mapped.extraCostFitments;
+      update.customExtras = mapped.customExtras;
+    } else {
+      // If arrays are directly provided, accept them
+      if (standardFitments !== undefined) update.standardFitments = standardFitments;
+      if (optionalFitmentsSelected !== undefined) update.optionalFitmentsSelected = optionalFitmentsSelected;
+      if (extraCostFitments !== undefined) update.extraCostFitments = extraCostFitments;
+      if (customExtras !== undefined) update.customExtras = customExtras;
+    }
 
     const enquiry = await Enquiry.findOneAndUpdate(
       { enquiryId },
-      {
-        $set: {
-          modelName,
-          standardFitments,
-          optionalFitmentsSelected,
-          extraCostFitments,
-          customExtras,
-          luxuryData,
-        },
-      },
+      { $set: update },
       { new: true }
     );
 
@@ -226,6 +258,7 @@ exports.updateLuxuryEnquiry = async (req, res) => {
       return res.status(404).json({ error: 'Enquiry not found' });
     }
 
+    // Re-generate attached PDF
     const pdfBuffer = await generateEnquiryPdf(enquiry);
     enquiry.pdfData = pdfBuffer;
     await enquiry.save();
@@ -240,6 +273,10 @@ exports.updateLuxuryEnquiry = async (req, res) => {
   }
 };
 
+/* ===========================
+ * SAVE luxury details (raw keys)
+ * - Stores to luxuryData and also maps arrays
+ * =========================== */
 exports.saveLuxuryDetails = async (req, res) => {
   try {
     const { enquiryId } = req.params;
@@ -249,8 +286,24 @@ exports.saveLuxuryDetails = async (req, res) => {
       return res.status(404).json({ error: 'Enquiry not found' });
     }
 
-    // attach/update luxury details
-    enquiry.luxuryDetails = req.body;
+    // Save raw to schema field (not "luxuryDetails")
+    const luxuryData = req.body || {};
+    const modelName = req.body?.modelName || enquiry.modelName || null;
+
+    // Map to arrays to keep everything in sync
+    const mapped = mapLuxuryToFitments(luxuryData, modelName);
+
+    enquiry.modelName = modelName || enquiry.modelName;
+    enquiry.luxuryData = luxuryData;
+    enquiry.standardFitments = mapped.standardFitments;
+    enquiry.optionalFitmentsSelected = mapped.optionalFitmentsSelected;
+    enquiry.extraCostFitments = mapped.extraCostFitments;
+    enquiry.customExtras = mapped.customExtras;
+
+    // Re-generate PDF
+    const pdfBuffer = await generateEnquiryPdf(enquiry);
+    enquiry.pdfData = pdfBuffer;
+
     await enquiry.save();
 
     return res.status(200).json({ message: 'Luxury details saved ✅' });
