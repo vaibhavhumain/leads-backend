@@ -279,18 +279,16 @@ exports.updateLuxuryEnquiry = async (req, res) => {
  * =========================== */
 exports.saveLuxuryDetails = async (req, res) => {
   try {
-    const { enquiryId } = req.params;
-    const enquiry = await Enquiry.findOne({ enquiryId });
+    const { leadId } = req.params; 
+    const enquiry = await Enquiry.findOne({ lead: leadId }); 
 
     if (!enquiry) {
-      return res.status(404).json({ error: 'Enquiry not found' });
+      return res.status(404).json({ error: 'Enquiry not found for this lead' });
     }
 
-    // Save raw to schema field (not "luxuryDetails")
     const luxuryData = req.body || {};
     const modelName = req.body?.modelName || enquiry.modelName || null;
 
-    // Map to arrays to keep everything in sync
     const mapped = mapLuxuryToFitments(luxuryData, modelName);
 
     enquiry.modelName = modelName || enquiry.modelName;
@@ -300,13 +298,13 @@ exports.saveLuxuryDetails = async (req, res) => {
     enquiry.extraCostFitments = mapped.extraCostFitments;
     enquiry.customExtras = mapped.customExtras;
 
-    // Re-generate PDF
+    // regenerate PDF
     const pdfBuffer = await generateEnquiryPdf(enquiry);
     enquiry.pdfData = pdfBuffer;
 
     await enquiry.save();
 
-    return res.status(200).json({ message: 'Luxury details saved ✅' });
+    return res.status(200).json({ message: 'Luxury details saved ✅', enquiry });
   } catch (err) {
     console.error('❌ saveLuxuryDetails error:', err);
     return res.status(500).json({ error: 'Server error', details: err.message });

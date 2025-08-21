@@ -15,6 +15,6 @@ router.get('/pdf/:id', protect, downloadEnquiryPdf);
 
 router.get('/all-pdfs/:leadId', protect, getAllPdfsByLead);
 
-router.post('/luxury/:enquiryId', protect, saveLuxuryDetails); // ✅ now works
+router.post('/luxury/:leadId', protect, saveLuxuryDetails);
 
 module.exports = router;
