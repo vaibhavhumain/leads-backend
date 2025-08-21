@@ -12,7 +12,7 @@ async function generateEnquiryPdf(enquiry) {
   const fontSize = 12;
   let y = height - 50;
 
-  // Try to embed logo
+  // === Logo ===
   const logoPath = path.resolve(__dirname, 'logo.png');
   try {
     const logoImage = fs.readFileSync(logoPath);
@@ -38,24 +38,29 @@ async function generateEnquiryPdf(enquiry) {
     y = height - 50;
   }
 
-  // Section header
+  // === Helpers ===
+  function newPageIfNeeded() {
+    if (y < 60) {
+      page = pdfDoc.addPage();
+      y = height - 70;
+    }
+  }
+
   function section(title) {
     y -= 30;
-    if (y < 60) { page = pdfDoc.addPage(); y = height - 70; }
+    newPageIfNeeded();
     page.drawRectangle({ x: 30, y: y + 8, width: width - 60, height: 24, color: rgb(0.87, 0.92, 1) });
     page.drawText(title, { x: 38, y: y + 12, size: 14, font: boldFont, color: rgb(0.09, 0.33, 0.68) });
     y -= 6;
   }
 
-  // Field row
   function field(label, value) {
-    if (y < 60) { page = pdfDoc.addPage(); y = height - 70; }
+    newPageIfNeeded();
     page.drawText(`${label}:`, { x: 42, y, size: fontSize, font: boldFont, color: rgb(0.18, 0.18, 0.18) });
     page.drawText(`${value || '-'}`, { x: 160, y, size: fontSize, font, color: rgb(0.18, 0.18, 0.18) });
     y -= 18;
   }
 
-  // Simple list renderer (for arrays)
   function listField(label, arr = []) {
     field(label, (arr && arr.length) ? arr.join(', ') : '-');
   }
@@ -132,12 +137,39 @@ async function generateEnquiryPdf(enquiry) {
   field('Seat Belt', enquiry.seatBelt);
   field('Seat Belt Type', enquiry.seatBeltType);
 
-  // === Arrays ===
+  // === Fitments ===
+  if (Array.isArray(enquiry.standardFitments) && enquiry.standardFitments.length > 0) {
+    section('Standard Fitments');
+    enquiry.standardFitments.forEach((fit, idx) => {
+      field(`${idx + 1}. ${fit.label || fit.key}`, `Suggested: ${fit.suggested || '-'}, Choice: ${fit.choice || '-'}, Other: ${fit.otherValue || '-'}`);
+    });
+  }
+
+  if (Array.isArray(enquiry.optionalFitmentsSelected) && enquiry.optionalFitmentsSelected.length > 0) {
+    section('Optional Fitments');
+    enquiry.optionalFitmentsSelected.forEach((fit, idx) => {
+      field(`${idx + 1}.`, fit);
+    });
+  }
+
+  if (Array.isArray(enquiry.extraCostFitments) && enquiry.extraCostFitments.length > 0) {
+    section('Extra-cost Fitments');
+    enquiry.extraCostFitments.forEach((fit, idx) => {
+      field(`${idx + 1}. ${fit.label || fit.key}`, fit.company || '-');
+    });
+  }
+
+  if (Array.isArray(enquiry.customExtras) && enquiry.customExtras.length > 0) {
+    section('Custom Extras');
+    enquiry.customExtras.forEach((extra, idx) => {
+      field(`${idx + 1}. ${extra.name || '-'}`, extra.desc || '-');
+    });
+  }
+
+  // === Other Features ===
   section('Features & Extras');
   listField('Optional Features', enquiry.optionalFeatures);
   listField('Fitments Provided', enquiry.fitmentProvided);
-  listField('Extra-cost Fitments', enquiry.extraCostFitments);
-  listField('Custom Extras', enquiry.customExtras);
 
   // === Notes ===
   section('Additional Notes');
