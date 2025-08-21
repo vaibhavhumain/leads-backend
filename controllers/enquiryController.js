@@ -280,7 +280,8 @@ exports.updateLuxuryEnquiry = async (req, res) => {
 exports.saveLuxuryDetails = async (req, res) => {
   try {
     const { leadId } = req.params; 
-    const enquiry = await Enquiry.findOne({ lead: leadId }); 
+    const enquiry = await Enquiry.findOne({ lead: leadId }).sort({ createdAt: -1 });
+
 
     if (!enquiry) {
       return res.status(404).json({ error: 'Enquiry not found for this lead' });
