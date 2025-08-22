@@ -5,7 +5,6 @@ const {
   createEnquiry,
   downloadEnquiryPdf,
   getAllPdfsByLead,
-  updateLuxuryEnquiry,
   saveLuxuryDetails   // ✅ ADD THIS
 } = require('../controllers/enquiryController');
 
