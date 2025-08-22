@@ -120,7 +120,7 @@ exports.createEnquiry = async (req, res) => {
     }
 
     // ---- Generate & attach PDF (server-side) ----
-    const pdfBuffer = await generateEnquiryPdf(enquiry);
+    const pdfBuffer = await generateEnquiryPdf(enquiry.toObject());
     enquiry.pdfData = pdfBuffer;
     await enquiry.save();
 
@@ -153,8 +153,14 @@ exports.downloadEnquiryPdf = async (req, res) => {
   try {
     const enquiry = await Enquiry.findOne({ enquiryId: req.params.id });
 
-    if (!enquiry || !enquiry.pdfData) {
-      return res.status(404).json({ error: 'PDF not found' });
+    if (!enquiry) {
+      return res.status(404).json({ error: 'Enquiry not found' });
+    }
+
+    if (!enquiry.pdfData) {
+      const pdfBuffer = await generateEnquiryPdf(enquiry.toObject());
+      enquiry.pdfData = pdfBuffer;
+      await enquiry.save();
     }
 
     if (
@@ -165,7 +171,7 @@ exports.downloadEnquiryPdf = async (req, res) => {
     }
 
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=${enquiry.enquiryId}.pdf`);
+    res.setHeader('Content-Disposition', `inline; filename=${enquiry.enquiryId}.pdf`);
     return res.send(enquiry.pdfData);
   } catch (err) {
     console.error('❌ Download error:', err);
@@ -173,9 +179,6 @@ exports.downloadEnquiryPdf = async (req, res) => {
   }
 };
 
-/* ===========================
- * LIST PDFs BY LEAD
- * =========================== */
 exports.getAllPdfsByLead = async (req, res) => {
   try {
     const leadIdParam = req.params.leadId;
@@ -259,7 +262,7 @@ exports.updateLuxuryEnquiry = async (req, res) => {
     }
 
     // Re-generate attached PDF
-    const pdfBuffer = await generateEnquiryPdf(enquiry);
+    const pdfBuffer = await generateEnquiryPdf(enquiry.toObject()); 
     enquiry.pdfData = pdfBuffer;
     await enquiry.save();
 
@@ -309,7 +312,7 @@ exports.saveLuxuryDetails = async (req, res) => {
 
     enquiry.modelName = updateModelName;
 
-    const pdfBuffer = await generateEnquiryPdf(enquiry);
+    const pdfBuffer = await generateEnquiryPdf(enquiry.toObject());
     enquiry.pdfData = pdfBuffer;
 
     await enquiry.save();
