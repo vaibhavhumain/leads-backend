@@ -273,41 +273,50 @@ exports.updateLuxuryEnquiry = async (req, res) => {
   }
 };
 
-/* ===========================
- * SAVE luxury details (raw keys)
- * - Stores to luxuryData and also maps arrays
- * =========================== */
 exports.saveLuxuryDetails = async (req, res) => {
   try {
-    const { leadId } = req.params; 
+    const { leadId } = req.params;
     const enquiry = await Enquiry.findOne({ lead: leadId }).sort({ createdAt: -1 });
 
-
     if (!enquiry) {
-      return res.status(404).json({ error: 'Enquiry not found for this lead' });
+      return res.status(404).json({ error: "Enquiry not found for this lead" });
     }
 
-    const luxuryData = req.body || {};
-    const modelName = req.body?.modelName || enquiry.modelName || null;
+    const {
+      modelName,
+      luxuryData,
+      standardFitments,
+      optionalFitmentsSelected,
+      extraCostFitments,
+      customExtras,
+    } = req.body || {};
 
-    const mapped = mapLuxuryToFitments(luxuryData, modelName);
+    const updateModelName = modelName || enquiry.modelName || null;
 
-    enquiry.modelName = modelName || enquiry.modelName;
-    enquiry.luxuryData = luxuryData;
-    enquiry.standardFitments = mapped.standardFitments;
-    enquiry.optionalFitmentsSelected = mapped.optionalFitmentsSelected;
-    enquiry.extraCostFitments = mapped.extraCostFitments;
-    enquiry.customExtras = mapped.customExtras;
+    if (luxuryData) {
+      const mapped = mapLuxuryToFitments(luxuryData, updateModelName);
+      enquiry.luxuryData = luxuryData;
+      enquiry.standardFitments = mapped.standardFitments;
+      enquiry.optionalFitmentsSelected = mapped.optionalFitmentsSelected;
+      enquiry.extraCostFitments = mapped.extraCostFitments;
+      enquiry.customExtras = mapped.customExtras;
+    } else {
+      if (standardFitments) enquiry.standardFitments = standardFitments;
+      if (optionalFitmentsSelected) enquiry.optionalFitmentsSelected = optionalFitmentsSelected;
+      if (extraCostFitments) enquiry.extraCostFitments = extraCostFitments;
+      if (customExtras) enquiry.customExtras = customExtras;
+    }
 
-    // regenerate PDF
+    enquiry.modelName = updateModelName;
+
     const pdfBuffer = await generateEnquiryPdf(enquiry);
     enquiry.pdfData = pdfBuffer;
 
     await enquiry.save();
 
-    return res.status(200).json({ message: 'Luxury details saved ✅', enquiry });
+    return res.status(200).json({ message: "Luxury details saved ✅", enquiry });
   } catch (err) {
-    console.error('❌ saveLuxuryDetails error:', err);
-    return res.status(500).json({ error: 'Server error', details: err.message });
+    console.error("❌ saveLuxuryDetails error:", err);
+    return res.status(500).json({ error: "Server error", details: err.message });
   }
 };
