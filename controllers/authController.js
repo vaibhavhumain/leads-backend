@@ -48,3 +48,28 @@ exports.login = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+
+// Developer Reset Password by Email
+exports.developerResetPassword = async (req, res) => {
+  const { email, newPassword } = req.body;
+
+  try {
+    // Only developers can reset passwords
+    if (req.user.role !== 'developer') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Hash new password
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    res.json({ message: `Password for ${user.email} reset successfully` });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
