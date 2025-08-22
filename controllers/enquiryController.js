@@ -36,9 +36,6 @@ async function nextSequencedIdForLead(baseId, leadObjectId) {
   return `${baseId}-${pad2}`;
 }
 
-/* ---------------------------------------
- * Sanitizer (kept, with small safety tweaks)
- * ------------------------------------- */
 function sanitizePayload(data) {
   const numberFields = [
     'businessNumberOfBuses',
@@ -47,29 +44,34 @@ function sanitizePayload(data) {
     'numberOfSeats',
     'totalSeats',
   ];
+
   const out = { ...data };
-  delete out.enquiryId; // never trust client-id
+  delete out.enquiryId; // never trust client-id from client side
 
   Object.keys(out).forEach((k) => {
-    // keep objects/arrays like luxuryData; only drop explicit empty scalars
     const v = out[k];
     const isPlainObj = v && typeof v === 'object' && !Array.isArray(v);
-    if (!isPlainObj && (v === '' || v === null || v === undefined)) {
-      delete out[k];
+
+    // Keep objects/arrays as they are. For scalars, replace empty with null
+    if (!isPlainObj && (v === '' || v === undefined)) {
+      out[k] = null;
     }
   });
 
   numberFields.forEach((k) => {
-    if (out[k] !== undefined) {
+    if (out[k] !== undefined && out[k] !== null) {
       const n = Number(out[k]);
-      if (Number.isNaN(n)) delete out[k];
+      if (Number.isNaN(n)) out[k] = null;
       else out[k] = n;
     }
   });
 
-  if (!out.customerType) delete out.customerType; // avoid enum error
+  // avoid enum error if customerType is empty string
+  if (!out.customerType) out.customerType = null;
+
   return out;
 }
+
 
 exports.createEnquiry = async (req, res) => {
   try {
