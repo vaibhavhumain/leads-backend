@@ -144,29 +144,33 @@ async function generateEnquiryPdf(enquiry) {
   field("Number of Seats", enquiry.numberOfSeats);
   field("Total Seats", enquiry.totalSeats);
 
-  // === Luxury ===
+    // === Luxury ===
   section("Luxury / Fitment");
-  field("Window Type", enquiry.windowType);
-  field("Required No Each Side", enquiry.requiredNoEachSide);
-  field("Tint of Shades", enquiry.tintOfShades);
-  field("Seat Type", enquiry.seatType);
-  field("Seat Material", enquiry.seatMaterial);
-  field("Curtain", enquiry.curtain);
-  field("Flooring Type", enquiry.flooringType);
-  field("Passenger Doors", enquiry.passengerDoors);
-  field("Door Position", enquiry.passengerDoorPosition);
-  field("Door Type", enquiry.doorType);
-  field("Roof Carrier", enquiry.roofCarrier);
-  field("Diggy Type", enquiry.diggyType);
-  field("Side Luggage", enquiry.sideLuggageReq);
-  field("Side Ladder", enquiry.sideLadder);
-  field("Helper Foot Step", enquiry.helperFootStep);
-  field("Rear Back Jaal", enquiry.rearBackJaal);
-  field("Cabin Type", enquiry.cabinType);
-  field("Specific Requirement", enquiry.specificRequirement);
-  field("Suggested Model", enquiry.suggestedModel);
-  field("Seat Belt", enquiry.seatBelt);
-  field("Seat Belt Type", enquiry.seatBeltType);
+  const lux = enquiry.luxuryData || {};   // ✅ FIX: use nested object
+
+  field("Suggested Model", lux.suggestedModel || enquiry.suggestedModel);
+  field("Window Type", lux.windowType);
+  field("Required No Each Side", lux.requiredNoEachSide);
+  field("Tint of Shades", lux.tintOfShades);
+  field("Seat Type", lux.seatType);
+  field("Seat Material", lux.seatMaterial);
+  field("Curtain", lux.curtain);
+  field("Flooring Type", lux.flooringType);
+  field("Passenger Doors", lux.passengerDoors);
+  field("Door Position", lux.passengerDoorPosition);
+  field("Door Type", lux.doorType);
+  field("Roof Carrier", lux.roofCarrier);
+  field("Diggy Type", lux.diggyType);
+  field("Side Luggage", lux.sideLuggageRequirement);
+  field("Diggy Flooring", lux.diggyFlooring);
+  field("Side Ladder", lux.sideLadder);
+  field("Helper Foot Step", lux.helperFootStep);
+  field("Rear Back Jaal", lux.rearBackJaal);
+  field("Cabin Type", lux.cabinType);
+  field("Specific Requirement", lux.sideLuggageRequirement);
+  field("Seat Belt", lux.seatBelt);
+  field("Seat Belt Type", lux.seatBeltType);
+
 
   // === Standard Fitments (Cleaned) ===
   if (Array.isArray(enquiry.standardFitments) && enquiry.standardFitments.length > 0) {
