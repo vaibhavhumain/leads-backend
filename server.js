@@ -17,7 +17,7 @@ app.use(express.static('public'));
 
 // ✅ Correct CORS Configuration
 const corsOptions = {
-  origin: ['http://localhost:3000', 'https://leadsmanage.netlify.app'], // allowed frontends
+  origin: ['http://localhost:3000', 'https://leadsmanage.netlify.app' , 'https://leads-portal.gobindcoach.com'], // allowed frontends
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: [
     'Origin',
