@@ -42,6 +42,8 @@ const {
   dedupeLeads,
   deleteOwnLoadsAsDeveloper,
   deleteOwnLeadsBulkAsDeveloper,
+  // ✅ new import
+  getLeadsByUser,
 } = require('../controllers/leadController');
 
 const { protect, admin } = require('../middleware/authMiddleware');
@@ -63,7 +65,7 @@ router.post('/create', protect, createLead);
 router.post('/forward', protect, forwardLead);
 router.post('/followup', protect, addFollowUp);
 router.post('/bulk', protect, bulkCreateLeads);
-router.post('/dedupe',protect , dedupeLeads);
+router.post('/dedupe', protect, dedupeLeads);
 router.post('/saveActionPlan', protect, saveActionPlan);
 router.post('/:id/add-contact', protect, addContact);
 router.post('/:leadId/activities', protect, addActivity);
@@ -78,13 +80,13 @@ router.put('/:id/connection-status', protect, updateConnectionStatus);
 router.put('/:id/company-name', protect, updateCompanyName);
 router.put('/:id/location', protect, updateLocation);
 router.put('/:id/update-contacts', protect, updateContacts);
-router.put('/:id/primary-contact', protect , updatePrimaryContact);
+router.put('/:id/primary-contact', protect, updatePrimaryContact);
 router.put('/:id/lifecycle', protect, updateLifecycleStatus);
 
 // ✅ Deletion
-router.delete('/developer',protect,deleteOwnLeadsBulkAsDeveloper);
+router.delete('/developer', protect, deleteOwnLeadsBulkAsDeveloper);
 router.delete('/deleteByUser/:id', protect, deleteLeadByUser);
-router.delete('/developer/:id',protect , deleteOwnLoadsAsDeveloper);
+router.delete('/developer/:id', protect, deleteOwnLoadsAsDeveloper);
 router.delete('/:id', protect, deleteLead);
 router.delete('/', protect, deleteAllLeads);
 
@@ -92,12 +94,17 @@ router.delete('/', protect, deleteAllLeads);
 router.get('/filter', protect, filterLeads);
 router.get('/followup-dates', protect, getFollowUpDates);
 router.get('/edited-dates', protect, getEditedDates);
-router.get('/dead-leads',protect , getDeadLeads);
+router.get('/dead-leads', protect, getDeadLeads);
 router.get('/followUpsByUser', protect, getFollowUpsByUser);
 router.get('/my-lead-creation-dates', protect, getMyLeadCreationDates);
 router.get('/leads-edited', protect, getLeadsEditedReport);
-router.get("/leads-edited-with-timers", protect, getEditedLeads);
-router.get('/', protect, getLeads);   
+router.get('/leads-edited-with-timers', protect, getEditedLeads);
+
+// ✅ NEW: Get all leads created by a specific user
+router.get('/user/:userId', protect, getLeadsByUser);
+
+// ✅ Admin/role-based
+router.get('/', protect, getLeads);
 router.get('/:id', protect, getLeadById);
 
 module.exports = router;

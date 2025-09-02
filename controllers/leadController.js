@@ -1326,8 +1326,6 @@ exports.deleteOwnLoadsAsDeveloper = async (req,res) => {
   }
   }
 
-  // Bulk delete: developer can delete ONLY the leads they created
-// Body: { dryRun?: boolean = true, startDate?: ISOString, endDate?: ISOString, status?: 'Hot'|'Warm'|'Cold', lifecycleStatus?: 'active'|'dead' }
 exports.deleteOwnLeadsBulkAsDeveloper = async (req, res) => {
   try {
     if (req.user?.role !== 'developer') {
@@ -1363,7 +1361,6 @@ exports.deleteOwnLeadsBulkAsDeveloper = async (req, res) => {
       filter.lifecycleStatus = lifecycleStatus;
     }
 
-    // Count first (and return sample)
     const total = await Lead.countDocuments(filter);
     if (dryRun) {
       const sample = await Lead.find(filter).select('_id leadDetails.clientName createdAt').limit(50).lean();
@@ -1375,9 +1372,7 @@ exports.deleteOwnLeadsBulkAsDeveloper = async (req, res) => {
       });
     }
 
-    // REAL delete
     const result = await Lead.deleteMany(filter);
-    // Optional: notify
     await notifyAllExceptAdmin(
       `${req.user.name} (developer) bulk deleted ${result.deletedCount} of their own lead(s).`,
       '/dashboard'
@@ -1390,5 +1385,25 @@ exports.deleteOwnLeadsBulkAsDeveloper = async (req, res) => {
   } catch (err) {
     console.error('Developer bulk delete error:', err);
     return res.status(500).json({ message: 'Failed to bulk delete leads', error: err.message });
+  }
+};
+
+
+// Get all leads created by a specific user (for Admin use)
+exports.getLeadsByUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const leads = await Lead.find({ createdBy: userId })
+      .populate("createdBy", "name email")
+      .populate("forwardedTo.user", "name email")
+      .populate("remarksHistory.updatedBy", "name email")
+      .populate("followUps.by", "name email")
+      .populate("notes.addedBy", "name email");
+
+    res.status(200).json(leads);
+  } catch (error) {
+    console.error("Error fetching leads by user:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };
