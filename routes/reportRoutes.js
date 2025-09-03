@@ -1,8 +1,8 @@
 // routes/reportRoutes.js
-import express from "express";
-import ExcelJS from "exceljs";
-import Lead from "../models/Lead.js";
-import protect from "../middleware/auth.js";
+const express = require("express");
+const ExcelJS = require("exceljs");
+const Lead = require("../models/Lead");
+const { protect } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 router.get("/user/:id", protect, async (req, res) => {
