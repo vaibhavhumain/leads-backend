@@ -51,6 +51,7 @@ const pauseLogRoutes = require('./routes/pauseLogs');
 const leadTimerLogsRoute = require('./routes/leadTimerLogs');
 const notificationRoutes = require('./routes/notificationRoutes');
 const proposalRoutes = require('./routes/proposalRoutes');
+const reportRoutes = require('./routes/reportRoutes');
 
 // ✅ Use routes
 app.use('/api/auth', authRoutes);
@@ -64,6 +65,7 @@ app.use('/api/pause-logs', pauseLogRoutes);
 app.use('/api/timer-logs', leadTimerLogsRoute);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/proposal', proposalRoutes);
+app.use('/api/reports', reportRoutes);
 
 // ✅ Root route
 app.get('/', (req, res) => {
