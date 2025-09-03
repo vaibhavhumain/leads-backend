@@ -1,4 +1,3 @@
-// controllers/leadTimerLogController.js
 const LeadTimerLog = require('../models/LeadTimerLog');
 const Lead = require('../models/Lead');
 const notifyAllExceptAdmin = require('../config/createNotifications');
@@ -6,7 +5,7 @@ const notifyAllExceptAdmin = require('../config/createNotifications');
 exports.saveLeadTimerLog = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { leadId, leadName, stoppedByName, duration, startTime } = req.body;
+    const { leadId, leadName, stoppedByName, duration, startTime, followUps, notes } = req.body;
 
     // Validation
     if (!leadId || !leadName || !stoppedByName || !duration) {
@@ -21,6 +20,9 @@ exports.saveLeadTimerLog = async (req, res) => {
       stoppedByName,
       duration,
       startTime,
+      followUps: followUps || [],
+      notes: notes || [],
+      stopTime: new Date()   
     });
 
     // 🚩 Send in-app notification
@@ -58,6 +60,7 @@ exports.getLeadTimerLogsByLead = async (req, res) => {
     const logs = await LeadTimerLog.find({ lead: leadId })
       .populate('stoppedBy', 'name email')
       .sort({ createdAt: -1 });
+
     const logsWithStoppedAt = logs.map(log => ({
       ...log._doc,
       stoppedAt: log.createdAt,
@@ -70,7 +73,7 @@ exports.getLeadTimerLogsByLead = async (req, res) => {
   }
 };
 
-// ✅ Get logs by user (NEW)
+// ✅ Get logs by user
 exports.getLeadTimerLogsByUser = async (req, res) => {
   try {
     const { userId } = req.params;
