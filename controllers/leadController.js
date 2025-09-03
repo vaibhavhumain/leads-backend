@@ -26,6 +26,7 @@ exports.createLead = async (req, res) => {
     email: leadDetails.email || '',
   },
   createdBy: req.user.id,
+  status: leadDetails.status || 'Cold',
   lifecycleStatus: 'active', 
 });
 
