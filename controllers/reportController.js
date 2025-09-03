@@ -1,3 +1,4 @@
+// controllers/reportController.js
 const ExcelJS = require("exceljs");
 const Lead = require("../models/Lead");
 
@@ -18,7 +19,6 @@ const getUserReport = async (req, res) => {
 
     // === DATE FILTERS ===
     if (type === "daily" && date) {
-      // Specific day
       const dayStart = new Date(date);
       const dayEnd = new Date(date);
       dayEnd.setDate(dayEnd.getDate() + 1);
@@ -26,7 +26,6 @@ const getUserReport = async (req, res) => {
     }
 
     if (type === "previous-daily") {
-      // Yesterday
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const yesterday = new Date(today);
@@ -35,7 +34,6 @@ const getUserReport = async (req, res) => {
     }
 
     if (type === "weekly" && start && end) {
-      // Custom week
       const startDate = new Date(start);
       const endDate = new Date(end);
       endDate.setDate(endDate.getDate() + 1);
@@ -43,7 +41,6 @@ const getUserReport = async (req, res) => {
     }
 
     if (type === "previous-weekly") {
-      // Last Monday → Sunday
       const now = new Date();
       const day = now.getDay(); // 0=Sun, 1=Mon
       const diffToMonday = day === 0 ? 6 : day - 1;
@@ -58,7 +55,6 @@ const getUserReport = async (req, res) => {
     }
 
     if (type === "monthly" && start && end) {
-      // Custom month
       const startDate = new Date(start);
       const endDate = new Date(end);
       endDate.setDate(endDate.getDate() + 1);
@@ -66,7 +62,6 @@ const getUserReport = async (req, res) => {
     }
 
     if (type === "previous-monthly") {
-      // Last month 1st → last day
       const now = new Date();
       const firstOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const firstOfLastMonth = new Date(
@@ -81,7 +76,10 @@ const getUserReport = async (req, res) => {
     const leads = await Lead.find(query)
       .populate("createdBy", "name email")
       .populate("assignedTo", "name email")
-      .populate("forwardedTo.user", "name email");
+      .populate("forwardedTo.user", "name email")
+      .populate("followUps.by", "name email")
+      .populate("remarksHistory.updatedBy", "name email");
+
     console.log(`✅ Found ${leads.length} leads for report.`);
 
     // === EXCEL CREATION ===
@@ -109,36 +107,45 @@ const getUserReport = async (req, res) => {
         _id: lead._id?.toString() || "",
         clientName: lead.leadDetails?.clientName || "",
         contacts: Array.isArray(lead.leadDetails?.contacts)
-          ? lead.leadDetails.contacts.map((c) => `${c.label}: ${c.number}`).join(", ")
+          ? lead.leadDetails.contacts
+              .map((c) => `${c.label}: ${c.number}`)
+              .join(", ")
           : "",
         companyName: lead.leadDetails?.companyName || "",
         location: lead.leadDetails?.location || "",
         status: lead.status || "",
         connectionStatus: lead.connectionStatus || "",
+
+        // ✅ Remarks History (remarks + updatedBy)
         remarksHistory: Array.isArray(lead.remarksHistory)
           ? lead.remarksHistory
               .map(
                 (r) =>
                   `[${r?.date ? new Date(r.date).toLocaleDateString() : "No Date"}] ${
-                    r?.user || "Unknown"
-                  }: ${r?.remark || ""}`
+                    r?.remarks || ""
+                  } ${r?.updatedBy?.name ? `(by: ${r.updatedBy.name})` : ""}`
               )
               .join("\n")
           : "",
+
+        // ✅ Follow Ups (notes + by)
         followUps: Array.isArray(lead.followUps)
           ? lead.followUps
               .map(
                 (f) =>
                   `[${f?.date ? new Date(f.date).toLocaleDateString() : "No Date"}] ${
-                    f?.remark || ""
-                  }`
+                    f?.notes || ""
+                  } ${f?.by?.name ? `(by: ${f.by.name})` : ""}`
               )
               .join("\n")
           : "",
+
         forwardedTo: lead.forwardedTo?.user?.name || "",
         createdBy: lead.createdBy?.name || "",
         assignedTo: lead.assignedTo?.name || "",
-        updatedAt: lead.updatedAt ? new Date(lead.updatedAt).toLocaleString() : "",
+        updatedAt: lead.updatedAt
+          ? new Date(lead.updatedAt).toLocaleString()
+          : "",
       });
     });
 
