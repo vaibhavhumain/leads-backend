@@ -7,6 +7,8 @@ const getUserReport = async (req, res) => {
     const userId = req.params.id;
     const { type, date, start, end } = req.query;
 
+    console.log("📊 Report Request:", { userId, type, date, start, end });
+
     let query = {
       $or: [
         { createdBy: userId },
@@ -35,11 +37,11 @@ const getUserReport = async (req, res) => {
       .populate("assignedTo", "name email")
       .populate("forwardedTo", "name email");
 
-    // Create workbook
+    console.log("✅ Leads found:", leads.length);
+
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("User Leads");
 
-    // Define headers
     sheet.columns = [
       { header: "Lead ID", key: "_id", width: 25 },
       { header: "Client Name", key: "clientName", width: 25 },
@@ -56,41 +58,35 @@ const getUserReport = async (req, res) => {
       { header: "Updated At", key: "updatedAt", width: 25 },
     ];
 
-    // Add rows
     leads.forEach((lead) => {
       sheet.addRow({
-        _id: lead._id.toString(),
+        _id: lead._id?.toString() || "",
         clientName: lead.leadDetails?.clientName || "",
-        contacts: lead.leadDetails?.contacts
-          ?.map((c) => `${c.label}: ${c.number}`)
-          .join(", "),
+        contacts: Array.isArray(lead.leadDetails?.contacts)
+          ? lead.leadDetails.contacts.map((c) => `${c.label}: ${c.number}`).join(", ")
+          : "",
         companyName: lead.leadDetails?.companyName || "",
         location: lead.leadDetails?.location || "",
         status: lead.status || "",
         connectionStatus: lead.connectionStatus || "",
-        remarksHistory: lead.remarksHistory
-          ?.map(
-            (r) =>
-              `[${new Date(r.date).toLocaleDateString()}] ${r.user}: ${r.remark}`
-          )
-          .join("\n"),
-        followUps: lead.followUps
-          ?.map(
-            (f) =>
-              `[${new Date(f.date).toLocaleDateString()}] ${f.remark || ""}`
-          )
-          .join("\n"),
+        remarksHistory: Array.isArray(lead.remarksHistory)
+          ? lead.remarksHistory.map(
+              (r) =>
+                `[${new Date(r.date).toLocaleDateString()}] ${r.user}: ${r.remark}`
+            ).join("\n")
+          : "",
+        followUps: Array.isArray(lead.followUps)
+          ? lead.followUps.map(
+              (f) =>
+                `[${new Date(f.date).toLocaleDateString()}] ${f.remark || ""}`
+            ).join("\n")
+          : "",
         forwardedTo: lead.forwardedTo?.name || "",
         createdBy: lead.createdBy?.name || "",
         assignedTo: lead.assignedTo?.name || "",
-        updatedAt: lead.updatedAt
-          ? new Date(lead.updatedAt).toLocaleString()
-          : "",
+        updatedAt: lead.updatedAt ? new Date(lead.updatedAt).toLocaleString() : "",
       });
     });
-
-    // Send file as buffer (fixes corrupted Excel issue)
-    const buffer = await workbook.xlsx.writeBuffer();
 
     res.setHeader(
       "Content-Type",
@@ -101,7 +97,8 @@ const getUserReport = async (req, res) => {
       `attachment; filename=user-${userId}-report.xlsx`
     );
 
-    res.send(buffer);
+    await workbook.xlsx.write(res);
+    res.end();
   } catch (err) {
     console.error("❌ Report error:", err);
     res.status(500).send("Error generating report");
