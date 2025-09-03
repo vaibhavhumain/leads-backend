@@ -16,27 +16,75 @@ const getUserReport = async (req, res) => {
       ],
     };
 
-    // Filters
+    // === DATE FILTERS ===
     if (type === "daily" && date) {
+      // Specific day
       const dayStart = new Date(date);
       const dayEnd = new Date(date);
       dayEnd.setDate(dayEnd.getDate() + 1);
       query.updatedAt = { $gte: dayStart, $lt: dayEnd };
     }
 
-    if ((type === "weekly" || type === "monthly") && start && end) {
+    if (type === "previous-daily") {
+      // Yesterday
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      query.updatedAt = { $gte: yesterday, $lt: today };
+    }
+
+    if (type === "weekly" && start && end) {
+      // Custom week
       const startDate = new Date(start);
       const endDate = new Date(end);
       endDate.setDate(endDate.getDate() + 1);
       query.updatedAt = { $gte: startDate, $lt: endDate };
     }
 
+    if (type === "previous-weekly") {
+      // Last Monday → Sunday
+      const now = new Date();
+      const day = now.getDay(); // 0=Sun, 1=Mon
+      const diffToMonday = day === 0 ? 6 : day - 1;
+      const thisMonday = new Date(now);
+      thisMonday.setDate(thisMonday.getDate() - diffToMonday);
+      thisMonday.setHours(0, 0, 0, 0);
+
+      const lastMonday = new Date(thisMonday);
+      lastMonday.setDate(lastMonday.getDate() - 7);
+
+      query.updatedAt = { $gte: lastMonday, $lt: thisMonday };
+    }
+
+    if (type === "monthly" && start && end) {
+      // Custom month
+      const startDate = new Date(start);
+      const endDate = new Date(end);
+      endDate.setDate(endDate.getDate() + 1);
+      query.updatedAt = { $gte: startDate, $lt: endDate };
+    }
+
+    if (type === "previous-monthly") {
+      // Last month 1st → last day
+      const now = new Date();
+      const firstOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const firstOfLastMonth = new Date(
+        now.getFullYear(),
+        now.getMonth() - 1,
+        1
+      );
+      query.updatedAt = { $gte: firstOfLastMonth, $lt: firstOfThisMonth };
+    }
+
+    // === FETCH DATA ===
     const leads = await Lead.find(query)
       .populate("createdBy", "name email")
       .populate("assignedTo", "name email")
       .populate("forwardedTo.user", "name email");
     console.log(`✅ Found ${leads.length} leads for report.`);
 
+    // === EXCEL CREATION ===
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("User Leads");
 
@@ -87,7 +135,7 @@ const getUserReport = async (req, res) => {
               )
               .join("\n")
           : "",
-        forwardedTo: lead.forwardedTo?.name || "",
+        forwardedTo: lead.forwardedTo?.user?.name || "",
         createdBy: lead.createdBy?.name || "",
         assignedTo: lead.assignedTo?.name || "",
         updatedAt: lead.updatedAt ? new Date(lead.updatedAt).toLocaleString() : "",
