@@ -35,9 +35,11 @@ const getUserReport = async (req, res) => {
       .populate("assignedTo", "name email")
       .populate("forwardedTo", "name email");
 
+    // Create workbook
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("User Leads");
 
+    // Define headers
     sheet.columns = [
       { header: "Lead ID", key: "_id", width: 25 },
       { header: "Client Name", key: "clientName", width: 25 },
@@ -54,6 +56,7 @@ const getUserReport = async (req, res) => {
       { header: "Updated At", key: "updatedAt", width: 25 },
     ];
 
+    // Add rows
     leads.forEach((lead) => {
       sheet.addRow({
         _id: lead._id.toString(),
@@ -86,6 +89,9 @@ const getUserReport = async (req, res) => {
       });
     });
 
+    // Send file as buffer (fixes corrupted Excel issue)
+    const buffer = await workbook.xlsx.writeBuffer();
+
     res.setHeader(
       "Content-Type",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -95,8 +101,7 @@ const getUserReport = async (req, res) => {
       `attachment; filename=user-${userId}-report.xlsx`
     );
 
-    await workbook.xlsx.write(res);
-    res.end();
+    res.send(buffer);
   } catch (err) {
     console.error("❌ Report error:", err);
     res.status(500).send("Error generating report");
