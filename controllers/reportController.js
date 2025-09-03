@@ -12,7 +12,7 @@ const getUserReport = async (req, res) => {
       $or: [
         { createdBy: userId },
         { assignedTo: userId },
-        { forwardedTo: userId },
+        { "forwardedTo.user": userId },
       ],
     };
 
