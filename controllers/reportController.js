@@ -1,4 +1,3 @@
-// controllers/reportController.js
 const ExcelJS = require("exceljs");
 const Lead = require("../models/Lead");
 
@@ -7,7 +6,7 @@ const getUserReport = async (req, res) => {
     const userId = req.params.id;
     const { type, date, start, end } = req.query;
 
-    console.log("📊 Report Request:", { userId, type, date, start, end });
+    console.log("📊 Report request:", { userId, type, date, start, end });
 
     let query = {
       $or: [
@@ -37,7 +36,7 @@ const getUserReport = async (req, res) => {
       .populate("assignedTo", "name email")
       .populate("forwardedTo", "name email");
 
-    console.log("✅ Leads found:", leads.length);
+    console.log(`✅ Found ${leads.length} leads for report.`);
 
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("User Leads");
@@ -70,16 +69,24 @@ const getUserReport = async (req, res) => {
         status: lead.status || "",
         connectionStatus: lead.connectionStatus || "",
         remarksHistory: Array.isArray(lead.remarksHistory)
-          ? lead.remarksHistory.map(
-              (r) =>
-                `[${new Date(r.date).toLocaleDateString()}] ${r.user}: ${r.remark}`
-            ).join("\n")
+          ? lead.remarksHistory
+              .map(
+                (r) =>
+                  `[${r?.date ? new Date(r.date).toLocaleDateString() : "No Date"}] ${
+                    r?.user || "Unknown"
+                  }: ${r?.remark || ""}`
+              )
+              .join("\n")
           : "",
         followUps: Array.isArray(lead.followUps)
-          ? lead.followUps.map(
-              (f) =>
-                `[${new Date(f.date).toLocaleDateString()}] ${f.remark || ""}`
-            ).join("\n")
+          ? lead.followUps
+              .map(
+                (f) =>
+                  `[${f?.date ? new Date(f.date).toLocaleDateString() : "No Date"}] ${
+                    f?.remark || ""
+                  }`
+              )
+              .join("\n")
           : "",
         forwardedTo: lead.forwardedTo?.name || "",
         createdBy: lead.createdBy?.name || "",
