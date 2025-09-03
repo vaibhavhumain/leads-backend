@@ -34,8 +34,7 @@ const getUserReport = async (req, res) => {
     const leads = await Lead.find(query)
       .populate("createdBy", "name email")
       .populate("assignedTo", "name email")
-      .populate("forwardedTo", "name email");
-
+      .populate("forwardedTo.user", "name email");
     console.log(`✅ Found ${leads.length} leads for report.`);
 
     const workbook = new ExcelJS.Workbook();
