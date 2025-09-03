@@ -1394,16 +1394,35 @@ exports.getLeadsByUser = async (req, res) => {
   try {
     const { userId } = req.params;
 
+    // 🔍 Fetch leads by user with full population
     const leads = await Lead.find({ createdBy: userId })
       .populate("createdBy", "name email")
+      .populate("assignedTo", "name email")
       .populate("forwardedTo.user", "name email")
       .populate("remarksHistory.updatedBy", "name email")
       .populate("followUps.by", "name email")
-      .populate("notes.addedBy", "name email");
+      .populate("notes.addedBy", "name email")
+      .populate("activities.conductedBy", "name email")
+      .sort({ createdAt: -1 });
 
-    res.status(200).json(leads);
+    if (!leads || leads.length === 0) {
+      return res.status(404).json({ message: "No leads found for this user" });
+    }
+
+    // 🔁 Attach timer logs for each lead
+    const leadsWithTimers = await Promise.all(
+      leads.map(async (lead) => {
+        const timerLogs = await TimerLog.find({ lead: lead._id }).lean();
+        return {
+          ...lead.toObject(),
+          timerLogs,
+        };
+      })
+    );
+
+    res.status(200).json(leadsWithTimers);
   } catch (error) {
     console.error("Error fetching leads by user:", error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };

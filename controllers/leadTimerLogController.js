@@ -35,7 +35,7 @@ exports.saveLeadTimerLog = async (req, res) => {
   }
 };
 
-// For admin to get all logs:
+// For admin to get all logs
 exports.getAllLeadTimerLogs = async (req, res) => {
   try {
     if (req.user.role !== 'admin') return res.status(403).json({ message: 'Forbidden' });
@@ -51,6 +51,7 @@ exports.getAllLeadTimerLogs = async (req, res) => {
   }
 };
 
+// Get logs by lead
 exports.getLeadTimerLogsByLead = async (req, res) => {
   try {
     const { leadId } = req.params;
@@ -66,5 +67,20 @@ exports.getLeadTimerLogsByLead = async (req, res) => {
     res.status(200).json({ logs: logsWithStoppedAt });
   } catch (err) {
     res.status(500).json({ message: 'Failed to load timer logs for lead', error: err.message });
+  }
+};
+
+// ✅ Get logs by user (NEW)
+exports.getLeadTimerLogsByUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const logs = await LeadTimerLog.find({ stoppedBy: userId })
+      .populate('lead', 'leadDetails.clientName')
+      .populate('stoppedBy', 'name email')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(logs);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to load timer logs for user', error: err.message });
   }
 };
