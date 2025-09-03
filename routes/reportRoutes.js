@@ -2,25 +2,45 @@
 import express from "express";
 import ExcelJS from "exceljs";
 import Lead from "../models/Lead.js";
-import auth from "../middleware/auth.js";
+import protect from "../middleware/auth.js";
 
 const router = express.Router();
-
-router.get("/report/user/:id", auth, async (req, res) => {
+router.get("/user/:id", protect, async (req, res) => {
   try {
     const userId = req.params.id;
+    const { type, date, start, end } = req.query;
 
-    const leads = await Lead.find({
+    // Base query: leads connected to this user
+    let query = {
       $or: [
         { createdBy: userId },
         { assignedTo: userId },
         { forwardedTo: userId },
       ],
-    })
+    };
+
+    // Apply date filters
+    if (type === "daily" && date) {
+      const dayStart = new Date(date);
+      const dayEnd = new Date(date);
+      dayEnd.setDate(dayEnd.getDate() + 1);
+      query.updatedAt = { $gte: dayStart, $lt: dayEnd };
+    }
+
+    if ((type === "weekly" || type === "monthly") && start && end) {
+      const startDate = new Date(start);
+      const endDate = new Date(end);
+      endDate.setDate(endDate.getDate() + 1); // include last day
+      query.updatedAt = { $gte: startDate, $lt: endDate };
+    }
+
+    // Fetch leads
+    const leads = await Lead.find(query)
       .populate("createdBy", "name email")
       .populate("assignedTo", "name email")
       .populate("forwardedTo", "name email");
 
+    // Build Excel workbook
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("User Leads");
 
@@ -41,7 +61,7 @@ router.get("/report/user/:id", auth, async (req, res) => {
       { header: "Updated At", key: "updatedAt", width: 25 },
     ];
 
-    // Add rows
+    // Add data rows
     leads.forEach((lead) => {
       sheet.addRow({
         _id: lead._id.toString(),
@@ -54,10 +74,18 @@ router.get("/report/user/:id", auth, async (req, res) => {
         status: lead.status || "",
         connectionStatus: lead.connectionStatus || "",
         remarksHistory: lead.remarksHistory
-          ?.map((r) => `[${r.date}] ${r.user}: ${r.remark}`)
+          ?.map(
+            (r) =>
+              `[${new Date(r.date).toLocaleDateString()}] ${r.user}: ${
+                r.remark
+              }`
+          )
           .join("\n"),
         followUps: lead.followUps
-          ?.map((f) => `[${f.date}] ${f.remark}`)
+          ?.map(
+            (f) =>
+              `[${new Date(f.date).toLocaleDateString()}] ${f.remark || ""}`
+          )
           .join("\n"),
         forwardedTo: lead.forwardedTo?.name || "",
         createdBy: lead.createdBy?.name || "",
@@ -68,6 +96,7 @@ router.get("/report/user/:id", auth, async (req, res) => {
       });
     });
 
+    // Send Excel file as response
     res.setHeader(
       "Content-Type",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -80,7 +109,7 @@ router.get("/report/user/:id", auth, async (req, res) => {
     await workbook.xlsx.write(res);
     res.end();
   } catch (err) {
-    console.error(err);
+    console.error("❌ Error generating report:", err);
     res.status(500).send("Error generating report");
   }
 });
