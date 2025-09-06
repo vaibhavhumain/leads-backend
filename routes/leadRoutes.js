@@ -40,7 +40,6 @@ const {
   getFollowUpsByUser,
   getMyLeadCreationDates,
   dedupeLeads,
-  deleteOwnLeadsAsDeveloper,         // ✅ renamed from deleteOwnLoadsAsDeveloper
   deleteOwnLeadsBulkAsDeveloper,
   getLeadsByUser,
 } = require('../controllers/leadController');
@@ -94,7 +93,6 @@ router.put('/:id/lifecycle', protect, updateLifecycleStatus);
 
 // ✅ Deletion
 router.delete('/developer', protect, deleteOwnLeadsBulkAsDeveloper);
-router.delete('/developer/:id', protect, deleteOwnLeadsAsDeveloper);
 router.delete('/deleteByUser/:id', protect, deleteLeadByUser);
 router.delete('/:id', protect, deleteLead);
 router.delete('/', protect, deleteAllLeads);
