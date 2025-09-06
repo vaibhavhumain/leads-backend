@@ -1477,52 +1477,65 @@ exports.deleteOwnLeadsBulkAsDeveloper = async (req, res) => {
 exports.getLeadsByUser = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { date } = req.query; // optional date filter
+    const { date } = req.query;
 
-    let query = { createdBy: userId };
+    if (!userId) {
+      return res.status(400).json({ message: "userId is required" });
+    }
 
-    // 🔥 If date is provided, filter by editHistory
+    const matchStage = { "editHistory.0": { $exists: true } };
+
     if (date) {
       const start = new Date(date);
       start.setHours(0, 0, 0, 0);
       const end = new Date(date);
       end.setHours(23, 59, 59, 999);
 
-      query = {
-        ...query,
-        editHistory: {
-          $elemMatch: {
-            editedAt: { $gte: start, $lt: end },
-            editedBy: userId, // only edits done by that user
-          },
-        },
-      };
+      matchStage["editHistory.editedAt"] = { $gte: start, $lt: end };
     }
 
-    // Fetch leads
-    const leads = await Lead.find(query)
-      .populate("createdBy", "name email")
-      .populate("assignedTo", "name email")
-      .populate("forwardedTo.user", "name email")
-      .populate("remarksHistory.updatedBy", "name email")
-      .populate("followUps.by", "name email")
-      .populate("notes.addedBy", "name email")
-      .populate("activities.conductedBy", "name email")
-      .sort({ createdAt: -1 });
+    const pipeline = [
+      { $match: { createdBy: new mongoose.Types.ObjectId(userId) } },
+      { $unwind: "$editHistory" }, // 🔥 explode edits
+      { $match: matchStage },      // filter by date
+      {
+        $lookup: {
+          from: "users",
+          localField: "createdBy",
+          foreignField: "_id",
+          as: "createdBy",
+        },
+      },
+      { $unwind: "$createdBy" },
+      {
+        $lookup: {
+          from: "users",
+          localField: "forwardedTo.user",
+          foreignField: "_id",
+          as: "forwardedTo.user",
+        },
+      },
+      {
+        $project: {
+          leadDetails: 1,
+          status: 1,
+          connectionStatus: 1,
+          lifecycleStatus: 1,
+          createdBy: { name: 1, email: 1 },
+          "forwardedTo.user": { name: 1, email: 1 },
+          editHistory: 1,
+        },
+      },
+      { $sort: { "editHistory.editedAt": -1 } },
+    ];
+
+    const leads = await Lead.aggregate(pipeline);
 
     if (!leads || leads.length === 0) {
-      return res.status(404).json({ message: "No leads found for this user" });
+      return res.status(404).json({ message: "No leads found for this user/date" });
     }
 
-    // Attach timer logs
-    const leadsWithTimers = await Promise.all(
-      leads.map(async (lead) => {
-        const timerLogs = await TimerLog.find({ lead: lead._id }).lean();
-        return { ...lead.toObject(), timerLogs };
-      })
-    );
-
-    res.status(200).json(leadsWithTimers);
+    res.status(200).json(leads);
   } catch (error) {
     console.error("Error fetching leads by user:", error);
     res.status(500).json({ message: "Server error", error: error.message });
