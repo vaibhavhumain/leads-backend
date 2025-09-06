@@ -1,8 +1,10 @@
 const mongoose = require('mongoose');
+
+// ---------------- Sub-schemas ----------------
 const followUpSchema = new mongoose.Schema({
   date: { type: Date, required: true },
   notes: { type: String, required: true },
-  by: { type: mongoose.Schema.Types.ObjectId, ref: 'User' } 
+  by: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 });
 
 const forwardedToSchema = new mongoose.Schema({
@@ -10,6 +12,12 @@ const forwardedToSchema = new mongoose.Schema({
   forwardedAt: { type: Date, default: Date.now },
 });
 
+const clientProfilingResponseSchema = new mongoose.Schema({
+  question: { type: mongoose.Schema.Types.ObjectId, ref: 'Question', required: true },
+  answer: mongoose.Schema.Types.Mixed,
+});
+
+// ---------------- Main Lead Schema ----------------
 const leadSchema = new mongoose.Schema(
   {
     leadDetails: {
@@ -26,12 +34,12 @@ const leadSchema = new mongoose.Schema(
             isPrimary: { type: Boolean, default: false }
           }
         ],
-        required: false,
-        default: undefined,
+        default: [] // ✅ safer than undefined
       }
     },
 
     isFrozen: { type: Boolean, default: false },
+
     status: {
       type: String,
       enum: ['Hot', 'Warm', 'Cold'],
@@ -79,16 +87,17 @@ const leadSchema = new mongoose.Schema(
     lastEditedAt: { type: Date, default: Date.now },
     lastEditedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 
-    // 👇 NEW: keep history of all edits
-    editHistory:{
-    type: [
-      {
-        editedAt: { type: Date, default: Date.now },
-        editedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
-      }
-    ],
-    default: []
-  },
+    // 👇 full history of edits
+    editHistory: {
+      type: [
+        {
+          editedAt: { type: Date, required: true }, // ✅ removed default
+          editedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+        }
+      ],
+      default: []
+    },
+
     remarks: { type: String },
     date: { type: Date },
     remarksHistory: [
@@ -117,21 +126,19 @@ const leadSchema = new mongoose.Schema(
     ],
 
     forwardedTo: forwardedToSchema,
+
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+
+    clientProfilingResponses: [clientProfilingResponseSchema],
   },
   { timestamps: true }
 );
 
-
-const clientProfilingResponseSchema = new mongoose.Schema({
-  question: { type: mongoose.Schema.Types.ObjectId, ref: 'Question', required: true },
-  answer: mongoose.Schema.Types.Mixed, 
-});
-
-leadSchema.add({
-  clientProfilingResponses: [clientProfilingResponseSchema],
-});
-
+leadSchema.index({ "leadDetails.contacts.number": 1 });
+leadSchema.index({ "editHistory.editedBy": 1 });
+leadSchema.index({ "editHistory.editedAt": 1 });
+leadSchema.index({ createdBy: 1 });
+leadSchema.index({ lifecycleStatus: 1 });
 
 module.exports = mongoose.model('Lead', leadSchema);
