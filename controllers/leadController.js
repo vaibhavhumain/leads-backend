@@ -1075,50 +1075,24 @@ exports.updateLifecycleStatus = async (req, res) => {
 };
 
 
-// controllers/leadController.js
-
 exports.getEditedDates = async (req, res) => {
-  try {
-    const userId = req.user?._id?.toString() || req.user?.id?.toString();
-    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
-
-    const dates = await Lead.aggregate([
-      { $match: { 'editHistory.0': { $exists: true } } },
-      { $unwind: '$editHistory' },
-      { $match: { 'editHistory.editedBy': new mongoose.Types.ObjectId(userId) } },
-      {
-        $group: {
-          _id: {
-            $dateToString: { format: '%Y-%m-%d', date: '$editHistory.editedAt' }
-          }
-        }
-      },
-      { $sort: { _id: -1 } }
-    ]);
-
-    res.status(200).json(dates.map(d => d._id));
-  } catch (err) {
-    console.error("❌ Error fetching edited dates:", err);
-    res.status(500).json({ message: "Failed to fetch edited dates" });
-  }
-};exports.getEditedDates = async (req, res) => {
   try {
     const rawUserId = req.query.userId || req.user?._id || req.user?.id;
     if (!rawUserId) {
       return res.status(401).json({ message: "Unauthorized: userId missing" });
     }
 
-    let userId;
-    try {
-      userId = new mongoose.Types.ObjectId(rawUserId);
-    } catch {
-      return res.status(400).json({ message: "Invalid userId format" });
+    let matchStage;
+    if (mongoose.Types.ObjectId.isValid(rawUserId)) {
+      matchStage = { "editHistory.editedBy": new mongoose.Types.ObjectId(rawUserId) };
+    } else {
+      matchStage = { "editHistory.editedBy": rawUserId };
     }
 
     const dates = await Lead.aggregate([
       { $match: { "editHistory.0": { $exists: true } } },
       { $unwind: "$editHistory" },
-      { $match: { "editHistory.editedBy": userId } },
+      { $match: matchStage },
       {
         $group: {
           _id: {
@@ -1135,7 +1109,9 @@ exports.getEditedDates = async (req, res) => {
     res.status(200).json(dates.map((d) => d._id));
   } catch (err) {
     console.error("❌ Error fetching edited dates:", err);
-    res.status(500).json({ message: "Failed to fetch edited dates", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Failed to fetch edited dates", error: err.message });
   }
 };
 
