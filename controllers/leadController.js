@@ -8,27 +8,34 @@ exports.createLead = async (req, res) => {
   const { leadDetails } = req.body;
 
   if (leadDetails.contacts && leadDetails.contacts.length > 0) {
-  const hasValidNumber = leadDetails.contacts.some(c => c.number && c.number.trim() !== '');
-  if (!hasValidNumber) {
-    return res.status(400).json({ message: "Invalid contact number" });
+    const hasValidNumber = leadDetails.contacts.some(c => c.number && c.number.trim() !== '');
+    if (!hasValidNumber) {
+      return res.status(400).json({ message: "Invalid contact number" });
+    }
   }
-}
+
   try {
     const newLead = new Lead({
-  leadDetails: {
-    source: leadDetails.source || '',
-    clientName: leadDetails.clientName || 'N/A',
-    contacts: leadDetails.contacts && leadDetails.contacts.length > 0
-      ? leadDetails.contacts
-      : [], 
-    companyName: leadDetails.companyName || '',
-    location: leadDetails.location || '',
-    email: leadDetails.email || '',
-  },
-  createdBy: req.user.id,
-  status: leadDetails.status || 'Cold',
-  lifecycleStatus: 'active', 
-});
+      leadDetails: {
+        source: leadDetails.source || '',
+        clientName: leadDetails.clientName || 'N/A',
+        contacts: leadDetails.contacts && leadDetails.contacts.length > 0
+          ? leadDetails.contacts
+          : [], 
+        companyName: leadDetails.companyName || '',
+        location: leadDetails.location || '',
+        email: leadDetails.email || '',
+      },
+      createdBy: req.user.id,
+      status: leadDetails.status || 'Cold',
+      lifecycleStatus: 'active',
+      lastEditedAt: new Date(),
+      lastEditedBy: req.user._id,
+      editHistory: [{
+        editedAt: new Date(),
+        editedBy: req.user._id
+      }]
+    });
 
     await newLead.save();
     const populatedLead = await Lead.findById(newLead._id)
@@ -61,8 +68,11 @@ exports.updateClientName = async (req, res) => {
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
 
     lead.leadDetails.clientName = clientName.trim();
-    lead.lastEditedAt = new Date();
-    lead.lastEditedBy = req.user._id; 
+    lead.editHistory.push({
+  editedAt: new Date(),
+  editedBy: req.user._id
+});
+
     await lead.save();
 
     // 🚩 Notify about name change
@@ -103,8 +113,11 @@ exports.forwardLead = async (req, res) => {
       forwardedAt: new Date(),
     };
     lead.isFrozen = true;
-    lead.lastEditedAt = new Date();
-    lead.lastEditedBy = req.user._id; 
+    lead.editHistory.push({
+  editedAt: new Date(),
+  editedBy: req.user._id
+});
+ 
     await lead.save();
 
     const updatedLead = await Lead.findById(leadId)
@@ -162,8 +175,11 @@ exports.addFollowUp = async (req, res) => {
       notes: followUp.notes,
       by: req.user._id
     });
-    lead.lastEditedAt = new Date();
-    lead.lastEditedBy = req.user._id; 
+    lead.editHistory.push({
+  editedAt: new Date(),
+  editedBy: req.user._id
+});
+ 
     await lead.save();
 
     // 🚩 Notify about follow-up
@@ -195,8 +211,11 @@ exports.saveActionPlan = async (req, res) => {
       text: actionPlan.trim(),
       addedBy: req.user._id,
     });
-    lead.lastEditedAt = new Date();
-    lead.lastEditedBy = req.user._id; 
+    lead.editHistory.push({
+  editedAt: new Date(),
+  editedBy: req.user._id
+});
+
     await lead.save();
 
     const updatedLead = await Lead.findById(leadId).populate('actionPlans.addedBy', 'name');
@@ -337,7 +356,12 @@ exports.updateEmail = async (req, res) => {
 
     lead.leadDetails.email = email.trim();
     lead.lastEditedAt = new Date();
-    lead.lastEditedBy = req.user._id; 
+    lead.lastEditedBy = req.user._id;
+    lead.editHistory.push({
+      editedAt: new Date(),
+      editedBy: req.user._id
+    });
+
     await lead.save();
 
     res.status(200).json({ message: 'Email updated', lead });
@@ -346,7 +370,6 @@ exports.updateEmail = async (req, res) => {
     res.status(500).json({ message: 'Failed to update email' });
   }
 };
-
 
 // Search leads globally by phone number
 exports.searchLeadsByPhone = async (req, res) => {
@@ -424,8 +447,11 @@ exports.updateLeadStatus = async (req, res) => {
     if (lead.forwardedTo?.user?.toString() === req.user._id.toString()) {
       lead.isFrozen = false;
     }
-    lead.lastEditedAt = new Date();
-    lead.lastEditedBy = req.user._id; 
+    lead.editHistory.push({
+  editedAt: new Date(),
+  editedBy: req.user._id
+});
+ 
     await lead.save();
 
     // 🚩 Notify about status change
@@ -482,8 +508,11 @@ exports.updateConnectionStatus = async (req, res) => {
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
 
     lead.connectionStatus = connectionStatus;
-    lead.lastEditedAt = new Date();
-    lead.lastEditedBy = req.user._id; 
+    lead.editHistory.push({
+  editedAt: new Date(),
+  editedBy: req.user._id
+});
+
     await lead.save();
 
     // 🚩 Notify about connection status
@@ -566,8 +595,11 @@ exports.addContact = async (req, res) => {
       number: number.trim(),
       label: label || 'Alternate',
     });
-    lead.lastEditedAt = new Date();
-    lead.lastEditedBy = req.user._id; 
+    lead.editHistory.push({
+  editedAt: new Date(),
+  editedBy: req.user._id
+});
+
     await lead.save();
 
     // ✅ Notify
@@ -606,8 +638,11 @@ exports.addActivity = async (req, res) => {
       remarks,
       outcome,
     });
-    lead.lastEditedAt = new Date();
-    lead.lastEditedBy = req.user._id; 
+    lead.editHistory.push({
+  editedAt: new Date(),
+  editedBy: req.user._id
+});
+ 
     await lead.save();
 
     await lead.populate('activities.conductedBy', 'name email');
@@ -720,8 +755,11 @@ exports.updateCompanyName = async (req, res) => {
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
 
     lead.leadDetails.companyName = companyName.trim();
-    lead.lastEditedAt = new Date();
-    lead.lastEditedBy = req.user._id; 
+    lead.editHistory.push({
+  editedAt: new Date(),
+  editedBy: req.user._id
+});
+
     await lead.save();
 
     res.status(200).json({ message: 'Company name updated', lead });
@@ -745,8 +783,11 @@ exports.updateLocation = async (req, res) => {
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
 
     lead.leadDetails.location = location.trim();
-    lead.lastEditedAt = new Date();
-    lead.lastEditedBy = req.user._id; 
+    lead.editHistory.push({
+  editedAt: new Date(),
+  editedBy: req.user._id
+});
+ 
     await lead.save();
 
     await notifyAllExceptAdmin(
@@ -790,8 +831,11 @@ exports.updatePrimaryContact = async (req, res) => {
       return res.status(404).json({ message: 'No contact matched the given _id' });
     }
 
-    lead.lastEditedAt = new Date();
-    lead.lastEditedBy = req.user._id;
+    lead.editHistory.push({
+  editedAt: new Date(),
+  editedBy: req.user._id
+});
+
     await lead.save();
 
     res.status(200).json({ message: 'Primary contact updated', contacts: lead.leadDetails.contacts });
@@ -806,24 +850,9 @@ exports.filterLeads = async (req, res) => {
   const { date, connectionStatus, status, hasFollowUps, followUpDate } = req.query;
 
   try {
-    const filter = {}
-      if(req.user.role !== 'admin'){
+    const filter = {};
+    if (req.user.role !== 'admin') {
       filter.createdBy = req.user._id;
-      }
-
-    if (date) {
-      const start = new Date(date);
-      const end = new Date(start);
-      end.setDate(end.getDate() + 1);
-      filter.lastEditedAt = { $gte: start, $lte: end };
-    }
-
-    if (connectionStatus === 'Connected' || connectionStatus === 'Not Connected') {
-      filter.connectionStatus = connectionStatus;
-    }
-
-    if (status === 'Hot' || status === 'Warm' || status === 'Cold') {
-      filter.status = status;
     }
 
     let leads = await Lead.find(filter)
@@ -831,14 +860,31 @@ exports.filterLeads = async (req, res) => {
       .populate('forwardedTo.user', 'name email')
       .populate('remarksHistory.updatedBy', 'name email');
 
-    // Filter leads by follow-up presence
-    if (hasFollowUps === 'true') {
-      leads = leads.filter((lead) => Array.isArray(lead.followUps) && lead.followUps.length > 0);
-    } else if (hasFollowUps === 'false') {
-      leads = leads.filter((lead) => !Array.isArray(lead.followUps) || lead.followUps.length === 0);
+    // 💡 Filter by edit date using editHistory
+    if (date) {
+      const selected = new Date(date);
+      const nextDay = new Date(selected);
+      nextDay.setDate(selected.getDate() + 1);
+
+      leads = leads.filter(l =>
+        l.editHistory.some(h => h.editedAt >= selected && h.editedAt < nextDay)
+      );
     }
 
-    // 💡 NEW: Filter by follow-up date
+    if (connectionStatus === 'Connected' || connectionStatus === 'Not Connected') {
+      leads = leads.filter(l => l.connectionStatus === connectionStatus);
+    }
+
+    if (status === 'Hot' || status === 'Warm' || status === 'Cold') {
+      leads = leads.filter(l => l.status === status);
+    }
+
+    if (hasFollowUps === 'true') {
+      leads = leads.filter(l => Array.isArray(l.followUps) && l.followUps.length > 0);
+    } else if (hasFollowUps === 'false') {
+      leads = leads.filter(l => !Array.isArray(l.followUps) || l.followUps.length === 0);
+    }
+
     if (followUpDate) {
       const selected = new Date(followUpDate);
       const nextDay = new Date(selected);
@@ -912,8 +958,11 @@ exports.addNote = async (req, res) => {
       text: text.trim(),
       addedBy: req.user._id,
     });
-    lead.lastEditedAt = new Date();
-    lead.lastEditedBy = req.user._id; 
+    lead.editHistory.push({
+  editedAt: new Date(),
+  editedBy: req.user._id
+});
+ 
     await lead.save();
 
     const updatedLead = await Lead.findById(leadId).populate('notes.addedBy', 'name');
@@ -950,8 +999,11 @@ exports.markLeadAsDead = async (req, res) => {
         date: new Date()
       });
     }
-    lead.lastEditedAt = new Date();
-    lead.lastEditedBy = req.user._id; 
+    lead.editHistory.push({
+  editedAt: new Date(),
+  editedBy: req.user._id
+});
+ 
     await lead.save();
 
     await notifyAllExceptAdmin(
@@ -1009,8 +1061,11 @@ exports.updateLifecycleStatus = async (req, res) => {
   lead.lifecycleUpdatedAt = null;
 }
 
-    lead.lastEditedAt = new Date();
-    lead.lastEditedBy = req.user._id; 
+    lead.editHistory.push({
+  editedAt: new Date(),
+  editedBy: req.user._id
+});
+ 
     await lead.save();
     res.status(200).json({ message: 'Lifecycle status updated', lead });
   } catch (err) {
@@ -1028,71 +1083,63 @@ exports.getEditedDates = async (req, res) => {
     if (!userId) return res.status(401).json({ message: 'Unauthorized' });
 
     const dates = await Lead.aggregate([
-      {
-        $match: {
-          lastEditedAt: { $exists: true, $ne: null },
-          createdBy: userId 
-        }
-      },
+      { $match: { 'editHistory.0': { $exists: true } } },
+      { $unwind: '$editHistory' },
+      { $match: { 'editHistory.editedBy': new mongoose.Types.ObjectId(userId) } },
       {
         $group: {
           _id: {
-            $dateToString: { format: '%Y-%m-%d', date: '$lastEditedAt' }
+            $dateToString: { format: '%Y-%m-%d', date: '$editHistory.editedAt' }
           }
         }
       },
       { $sort: { _id: -1 } }
     ]);
+
     res.status(200).json(dates.map(d => d._id));
   } catch (err) {
+    console.error("❌ Error fetching edited dates:", err);
     res.status(500).json({ message: "Failed to fetch edited dates" });
   }
 };
 
-
 exports.getLeadsEditedReport = async (req, res) => {
   try {
     const { date, startDate, endDate, userId } = req.query;
-
     if (!userId) return res.status(400).json({ message: 'userId is required' });
 
-    const query = { lastEditedBy: userId };
+    const match = { 'editHistory.editedBy': new mongoose.Types.ObjectId(userId) };
 
     if (date) {
       const start = new Date(date);
       start.setHours(0, 0, 0, 0);
       const end = new Date(start);
       end.setDate(end.getDate() + 1);
-      query.lastEditedAt = { $gte: start, $lt: end };
+      match['editHistory.editedAt'] = { $gte: start, $lt: end };
     } else if (startDate && endDate) {
       const start = new Date(startDate);
       const end = new Date(endDate);
       end.setHours(23, 59, 59, 999);
-      query.lastEditedAt = { $gte: start, $lte: end };
+      match['editHistory.editedAt'] = { $gte: start, $lte: end };
     } else {
       return res.status(400).json({ message: 'Provide either date or startDate & endDate' });
     }
 
-    // 🔍 Fetch leads first
-    const leads = await Lead.find(query)
+    const leads = await Lead.find({ editHistory: { $elemMatch: match } })
       .populate('createdBy', 'name email')
       .populate('followUps.by', 'name')
       .populate('notes.addedBy', 'name');
 
-    // 🔁 Attach timer logs to each lead
     const leadsWithTimerLogs = await Promise.all(
       leads.map(async (lead) => {
         const timerLogs = await TimerLog.find({ lead: lead._id });
-        return {
-          ...lead.toObject(),
-          timerLogs,
-        };
+        return { ...lead.toObject(), timerLogs };
       })
     );
 
     res.status(200).json({ leads: leadsWithTimerLogs });
   } catch (err) {
-    console.error('❌ Error fetching edited leads:', err);
+    console.error('❌ Error fetching edited leads report:', err);
     res.status(500).json({ message: 'Failed to fetch leads', error: err.message });
   }
 };
@@ -1110,10 +1157,13 @@ exports.updateContacts = async (req, res) => {
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
 
     lead.leadDetails.contacts = contacts;
-    lead.lastEditedAt = new Date();
-    lead.lastEditedBy = req.user._id;
-    await lead.save();
+    lead.editHistory.push({
+  editedAt: new Date(),
+  editedBy: req.user._id
+});
 
+    await lead.save();
+    
     res.status(200).json({ message: 'Contacts updated', contacts });
   } catch (error) {
     console.error('Update contacts error:', error);
@@ -1125,19 +1175,31 @@ exports.getEditedLeads = async (req, res) => {
   try {
     const { startDate, endDate, date, userId } = req.query;
 
-    const leads = await Lead.find({
-      lastEditedAt: {
-        $gte: new Date(startDate || date),
-        $lte: new Date(endDate || date),
-      },
-      ...(userId && { editedBy: userId }),
-    })
+    const match = {};
+    if (userId) {
+      match['editHistory.editedBy'] = new mongoose.Types.ObjectId(userId);
+    }
+
+    if (date) {
+      const start = new Date(date);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 1);
+      match['editHistory.editedAt'] = { $gte: start, $lt: end };
+    } else if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      match['editHistory.editedAt'] = { $gte: start, $lte: end };
+    }
+
+    const leads = await Lead.find({ editHistory: { $elemMatch: match } })
       .populate("createdBy", "name email")
-      .sort({ lastEditedAt: -1 });
+      .sort({ 'editHistory.editedAt': -1 });
 
     const leadsWithTimerLogs = await Promise.all(
       leads.map(async (lead) => {
-        const timerLogs = await LeadTimerLog.find({ lead: lead._id });
+        const timerLogs = await TimerLog.find({ lead: lead._id });
         return {
           ...lead.toObject(),
           timerLogs,
@@ -1151,6 +1213,7 @@ exports.getEditedLeads = async (req, res) => {
     res.status(500).json({ message: "Could not fetch edited leads." });
   }
 };
+
 
 exports.getFollowUpSuggestions = async (req, res) => {
   try {

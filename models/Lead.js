@@ -13,100 +13,108 @@ const forwardedToSchema = new mongoose.Schema({
 const leadSchema = new mongoose.Schema(
   {
     leadDetails: {
-  companyName: { type: String },
-  location: { type: String },
-  clientName: { type: String, default: '' }, 
-  source: { type: String }, 
-  email: { type: String, default: '' },
-  contacts: {
-  type: [
-    {
-      number: { type: String }, 
-      label: { type: String, default: "Primary" },
-      isPrimary: { type: Boolean, default: false } 
-    }
-  ],
-  required: false,
-  default: undefined,
-}
-},
-
-  isFrozen: { type: Boolean, default: false },
-  status: {
-  type: String,
-  enum: ['Hot', 'Warm', 'Cold'],
-  default: 'Cold', 
-},
-actionPlans: [
-  {
-    text: { type: String, required: true },
-    date: { type: Date, default: Date.now },
-    addedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
-  }
-],
-
-activities: [
-  {
-    type: {
-      type: String,
-      enum: ['factory_visit', 'in_person_meeting'],
-      required: true
+      companyName: { type: String },
+      location: { type: String },
+      clientName: { type: String, default: '' },
+      source: { type: String },
+      email: { type: String, default: '' },
+      contacts: {
+        type: [
+          {
+            number: { type: String },
+            label: { type: String, default: "Primary" },
+            isPrimary: { type: Boolean, default: false }
+          }
+        ],
+        required: false,
+        default: undefined,
+      }
     },
-    date: { type: Date, required: true },
-    conductedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    location: { type: String }, 
+
+    isFrozen: { type: Boolean, default: false },
+    status: {
+      type: String,
+      enum: ['Hot', 'Warm', 'Cold'],
+      default: 'Cold',
+    },
+
+    actionPlans: [
+      {
+        text: { type: String, required: true },
+        date: { type: Date, default: Date.now },
+        addedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+      }
+    ],
+
+    activities: [
+      {
+        type: {
+          type: String,
+          enum: ['factory_visit', 'in_person_meeting'],
+          required: true
+        },
+        date: { type: Date, required: true },
+        conductedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+        location: { type: String },
+        remarks: { type: String },
+        outcome: { type: String }
+      }
+    ],
+
+    connectionStatus: {
+      type: String,
+      enum: ['Connected', 'Not Connected'],
+      default: 'Not Connected',
+    },
+
+    lifecycleStatus: {
+      type: String,
+      enum: ['active', 'dead'],
+      default: 'active'
+    },
+
+    lifecycleUpdatedAt: { type: Date },
+
+    // 👇 latest edit (quick access)
+    lastEditedAt: { type: Date, default: Date.now },
+    lastEditedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+
+    // 👇 NEW: keep history of all edits
+    editHistory:{
+    type: [
+      {
+        editedAt: { type: Date, default: Date.now },
+        editedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+      }
+    ],
+    default: []
+  },
     remarks: { type: String },
-    outcome: { type: String }
-  }
-],
-
-
-connectionStatus: {
-  type: String,
-  enum: ['Connected', 'Not Connected'],
-  default: 'Not Connected',
-},
-
-lifecycleStatus: {
-  type: String,
-  enum: ['active', 'dead'],
-  default: 'active'
-},
-
-lifecycleUpdatedAt: {
-  type: Date,  
-},
-
-lastEditedAt: { type: Date, default: Date.now },
-
-lastEditedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-
-    remarks: { type: String },  
-    date: { type: Date }, 
+    date: { type: Date },
     remarksHistory: [
-  {
-    remarks: String,
-    date: Date,
-    updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  }
-],
-answers: [
-  {
-    question: String,
-    answer: String
-  }
-],
+      {
+        remarks: String,
+        date: Date,
+        updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      }
+    ],
 
+    answers: [
+      {
+        question: String,
+        answer: String
+      }
+    ],
 
-    followUps: [followUpSchema], 
+    followUps: [followUpSchema],
+
     notes: [
-  {
-    text: { type: String, required: true },
-    date: { type: Date, default: Date.now },
-    addedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
-  }
-],
-
+      {
+        text: { type: String, required: true },
+        date: { type: Date, default: Date.now },
+        addedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+      }
+    ],
 
     forwardedTo: forwardedToSchema,
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -114,6 +122,7 @@ answers: [
   },
   { timestamps: true }
 );
+
 
 const clientProfilingResponseSchema = new mongoose.Schema({
   question: { type: mongoose.Schema.Types.ObjectId, ref: 'Question', required: true },
