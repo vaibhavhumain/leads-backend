@@ -1473,7 +1473,6 @@ exports.deleteOwnLeadsBulkAsDeveloper = async (req, res) => {
 };
 
 
-// Get all leads created by a specific user (for Admin use)
 exports.getLeadsByUser = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -1483,7 +1482,7 @@ exports.getLeadsByUser = async (req, res) => {
       return res.status(400).json({ message: "userId is required" });
     }
 
-    const matchStage = { "editHistory.0": { $exists: true } };
+    const matchStage = { "editHistory.editedBy": new mongoose.Types.ObjectId(userId) };
 
     if (date) {
       const start = new Date(date);
@@ -1495,9 +1494,8 @@ exports.getLeadsByUser = async (req, res) => {
     }
 
     const pipeline = [
-      { $match: { createdBy: new mongoose.Types.ObjectId(userId) } },
-      { $unwind: "$editHistory" }, // 🔥 explode edits
-      { $match: matchStage },      // filter by date
+      { $unwind: "$editHistory" }, // 🔥 explode each edit
+      { $match: matchStage },      // filter by who edited (+ date if given)
       {
         $lookup: {
           from: "users",
@@ -1512,17 +1510,24 @@ exports.getLeadsByUser = async (req, res) => {
           from: "users",
           localField: "forwardedTo.user",
           foreignField: "_id",
-          as: "forwardedTo.user",
+          as: "forwardedToUser",
         },
       },
+      { $unwind: { path: "$forwardedToUser", preserveNullAndEmptyArrays: true } },
       {
         $project: {
           leadDetails: 1,
           status: 1,
           connectionStatus: 1,
           lifecycleStatus: 1,
-          createdBy: { name: 1, email: 1 },
-          "forwardedTo.user": { name: 1, email: 1 },
+          createdBy: { name: "$createdBy.name", email: "$createdBy.email" },
+          forwardedTo: {
+            user: {
+              name: "$forwardedToUser.name",
+              email: "$forwardedToUser.email",
+            },
+            forwardedAt: "$forwardedTo.forwardedAt",
+          },
           editHistory: 1,
         },
       },
