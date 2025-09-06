@@ -3,6 +3,7 @@ const User = require('../models/User');
 const notifyAllExceptAdmin = require('../config/createNotifications');
 const sendLeadNotificationEmail = require('../utils/sendLeadNotificationEmail');
 const TimerLog = require('../models/LeadTimerLog')
+const mongoose = require("mongoose");
 // Create a new lead
 exports.createLead = async (req, res) => {
   const { leadDetails } = req.body;
@@ -1121,7 +1122,13 @@ exports.getLeadsEditedReport = async (req, res) => {
     const { date, startDate, endDate, userId } = req.query;
     if (!userId) return res.status(400).json({ message: 'userId is required' });
 
-    const match = { 'editHistory.editedBy': new mongoose.Types.ObjectId(userId) };
+    let match = {};
+if (mongoose.Types.ObjectId.isValid(userId)) {
+  match['editHistory.editedBy'] = new mongoose.Types.ObjectId(userId);
+} else {
+  match['editHistory.editedBy'] = userId; // fallback if stored as string
+}
+
 
     if (date) {
       const start = new Date(date);
