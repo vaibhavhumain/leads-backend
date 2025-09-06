@@ -1477,9 +1477,30 @@ exports.deleteOwnLeadsBulkAsDeveloper = async (req, res) => {
 exports.getLeadsByUser = async (req, res) => {
   try {
     const { userId } = req.params;
+    const { date } = req.query; // optional date filter
 
-    // 🔍 Fetch leads by user with full population
-    const leads = await Lead.find({ createdBy: userId })
+    let query = { createdBy: userId };
+
+    // 🔥 If date is provided, filter by editHistory
+    if (date) {
+      const start = new Date(date);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(date);
+      end.setHours(23, 59, 59, 999);
+
+      query = {
+        ...query,
+        editHistory: {
+          $elemMatch: {
+            editedAt: { $gte: start, $lt: end },
+            editedBy: userId, // only edits done by that user
+          },
+        },
+      };
+    }
+
+    // Fetch leads
+    const leads = await Lead.find(query)
       .populate("createdBy", "name email")
       .populate("assignedTo", "name email")
       .populate("forwardedTo.user", "name email")
@@ -1493,14 +1514,11 @@ exports.getLeadsByUser = async (req, res) => {
       return res.status(404).json({ message: "No leads found for this user" });
     }
 
-    // 🔁 Attach timer logs for each lead
+    // Attach timer logs
     const leadsWithTimers = await Promise.all(
       leads.map(async (lead) => {
         const timerLogs = await TimerLog.find({ lead: lead._id }).lean();
-        return {
-          ...lead.toObject(),
-          timerLogs,
-        };
+        return { ...lead.toObject(), timerLogs };
       })
     );
 
