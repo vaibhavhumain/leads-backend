@@ -1101,7 +1101,44 @@ exports.getEditedDates = async (req, res) => {
     console.error("❌ Error fetching edited dates:", err);
     res.status(500).json({ message: "Failed to fetch edited dates" });
   }
+};exports.getEditedDates = async (req, res) => {
+  try {
+    const rawUserId = req.query.userId || req.user?._id || req.user?.id;
+    if (!rawUserId) {
+      return res.status(401).json({ message: "Unauthorized: userId missing" });
+    }
+
+    let userId;
+    try {
+      userId = new mongoose.Types.ObjectId(rawUserId);
+    } catch {
+      return res.status(400).json({ message: "Invalid userId format" });
+    }
+
+    const dates = await Lead.aggregate([
+      { $match: { "editHistory.0": { $exists: true } } },
+      { $unwind: "$editHistory" },
+      { $match: { "editHistory.editedBy": userId } },
+      {
+        $group: {
+          _id: {
+            $dateToString: {
+              format: "%Y-%m-%d",
+              date: "$editHistory.editedAt",
+            },
+          },
+        },
+      },
+      { $sort: { _id: -1 } },
+    ]);
+
+    res.status(200).json(dates.map((d) => d._id));
+  } catch (err) {
+    console.error("❌ Error fetching edited dates:", err);
+    res.status(500).json({ message: "Failed to fetch edited dates", error: err.message });
+  }
 };
+
 
 exports.getLeadsEditedReport = async (req, res) => {
   try {
