@@ -1,10 +1,13 @@
 const Lead = require('../models/Lead');
 const Enquiry = require('../models/Enquiry');
-const generateEnquiryPdf = require('../config/generateEnquiryPdf');
+const generateEnquiryExcel = require('../config/generateEnquiryExcel'); // ✅ use Excel
 const notifyAllExceptAdmin = require('../config/createNotifications');
 const mongoose = require("mongoose");
 const { mapLuxuryToFitments } = require('../utils/mapLuxuryToFitments');
 
+/* ------------------------
+   Helpers
+------------------------ */
 function buildBaseEnquiryId(userName) {
   const initials = userName ? userName.substring(0, 3).toUpperCase() : "USR";
   const now = new Date();
@@ -46,13 +49,11 @@ function sanitizePayload(data) {
   ];
 
   const out = { ...data };
-  delete out.enquiryId; // never trust client-id from client side
+  delete out.enquiryId;
 
   Object.keys(out).forEach((k) => {
     const v = out[k];
     const isPlainObj = v && typeof v === 'object' && !Array.isArray(v);
-
-    // Keep objects/arrays as they are. For scalars, replace empty with null
     if (!isPlainObj && (v === '' || v === undefined)) {
       out[k] = null;
     }
@@ -66,13 +67,13 @@ function sanitizePayload(data) {
     }
   });
 
-  // avoid enum error if customerType is empty string
   if (!out.customerType) out.customerType = null;
-
   return out;
 }
 
-
+/* ------------------------
+   Create Enquiry
+------------------------ */
 exports.createEnquiry = async (req, res) => {
   try {
     const createdBy = req.body.createdBy || req.user?._id;
@@ -89,14 +90,12 @@ exports.createEnquiry = async (req, res) => {
     }
 
     const clean = sanitizePayload(req.body);
-
     const modelName = clean.modelName || clean.suggestedModel || null;
     const luxuryData = clean.luxuryData || {};
     const mapped = mapLuxuryToFitments(luxuryData, modelName);
 
     const baseId = buildBaseEnquiryId(req.user?.name);
 
-    // ---- Create with sequence & tiny retry on collision ----
     let enquiry;
     for (let attempt = 0; attempt < 3; attempt++) {
       const enquiryId = await nextSequencedIdForLead(baseId, lead._id);
@@ -109,21 +108,20 @@ exports.createEnquiry = async (req, res) => {
           optionalFitmentsSelected: mapped.optionalFitmentsSelected,
           extraCostFitments: mapped.extraCostFitments,
           customExtras: mapped.customExtras,
-
           lead: lead._id,
           createdBy: req.user._id,
-          enquiryId, // server-owned
+          enquiryId,
         });
-        break; // success
+        break;
       } catch (e) {
-        if (e?.code === 11000 && attempt < 2) continue; // race, try next suffix
+        if (e?.code === 11000 && attempt < 2) continue;
         throw e;
       }
     }
 
-    // ---- Generate & attach PDF (server-side) ----
-    const pdfBuffer = await generateEnquiryPdf(enquiry.toObject());
-    enquiry.pdfData = pdfBuffer;
+    // ---- Generate & attach Excel ----
+    const excelBuffer = await generateEnquiryExcel(enquiry.toObject());
+    enquiry.excelData = excelBuffer;
     await enquiry.save();
 
     // ---- Notify ----
@@ -138,30 +136,25 @@ exports.createEnquiry = async (req, res) => {
       leadId: lead._id,
     });
   } catch (err) {
-    if (err?.name === 'ValidationError') {
-      console.error('❌ Enquiry validation error:', err);
-      return res.status(400).json({ error: 'Validation error', details: err.message });
-    }
     const status = err?.code === 11000 ? 409 : 500;
-    console.error('❌ Backend error:', err);
+    console.error('❌ createEnquiry error:', err);
     return res.status(status).json({ error: 'Server error', details: err.message });
   }
 };
 
-/* ===========================
- * DOWNLOAD PDF
- * =========================== */
-exports.downloadEnquiryPdf = async (req, res) => {
+/* ------------------------
+   Download Excel
+------------------------ */
+exports.downloadEnquiryExcel = async (req, res) => {
   try {
     const enquiry = await Enquiry.findOne({ enquiryId: req.params.id });
-
     if (!enquiry) {
       return res.status(404).json({ error: 'Enquiry not found' });
     }
 
-    if (!enquiry.pdfData) {
-      const pdfBuffer = await generateEnquiryPdf(enquiry.toObject());
-      enquiry.pdfData = pdfBuffer;
+    if (!enquiry.excelData) {
+      const buffer = await generateEnquiryExcel(enquiry.toObject());
+      enquiry.excelData = buffer;
       await enquiry.save();
     }
 
@@ -169,19 +162,25 @@ exports.downloadEnquiryPdf = async (req, res) => {
       (!req.user || req.user.role !== 'admin') &&
       enquiry.createdBy.toString() !== req.user._id.toString()
     ) {
-      return res.status(403).json({ error: 'Forbidden: You do not have access to this PDF' });
+      return res.status(403).json({ error: 'Forbidden: You do not have access to this Excel' });
     }
 
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename=${enquiry.enquiryId}.pdf`);
-    return res.send(enquiry.pdfData);
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', `attachment; filename=${enquiry.enquiryId}.xlsx`);
+    return res.send(enquiry.excelData);
   } catch (err) {
-    console.error('❌ Download error:', err);
+    console.error('❌ downloadEnquiryExcel error:', err);
     return res.status(500).json({ error: 'Server error', details: err.message });
   }
 };
 
-exports.getAllPdfsByLead = async (req, res) => {
+/* ------------------------
+   Get all by lead
+------------------------ */
+exports.getAllExcelsByLead = async (req, res) => {
   try {
     const leadIdParam = req.params.leadId;
     if (!mongoose.Types.ObjectId.isValid(leadIdParam)) {
@@ -203,27 +202,21 @@ exports.getAllPdfsByLead = async (req, res) => {
       enquiries.map(e => ({
         enquiryId: e.enquiryId,
         createdAt: e.createdAt,
-        pdfUrl: `/api/enquiry/pdf/${e.enquiryId}`,
+        excelUrl: `/api/enquiry/excel/${e.enquiryId}`,
       }))
     );
   } catch (err) {
-    console.error('❌ getAllPdfsByLead error:', err);
+    console.error('❌ getAllExcelsByLead error:', err);
     return res.status(500).json({ error: 'Server error', details: err.message });
   }
 };
 
-/* ===========================
- * UPDATE luxury/model (flexible)
- * - Accepts raw luxuryData (+ modelName) OR fully-formed arrays
- * - Always regenerates arrays if luxuryData provided
- * =========================== */
+/* ------------------------
+   Update Luxury Enquiry
+------------------------ */
 exports.updateLuxuryEnquiry = async (req, res) => {
   try {
     const { enquiryId } = req.params;
-
-    // Accept both shapes:
-    // A) raw: { modelName, luxuryData: {...} }
-    // B) arrays: { standardFitments, optionalFitmentsSelected, extraCostFitments, customExtras }
     const {
       modelName,
       luxuryData,
@@ -234,11 +227,9 @@ exports.updateLuxuryEnquiry = async (req, res) => {
     } = req.body || {};
 
     const update = {};
-
     if (modelName !== undefined) update.modelName = modelName;
 
     if (luxuryData !== undefined) {
-      // Raw → map to arrays
       const mapped = mapLuxuryToFitments(luxuryData || {}, modelName || null);
       update.luxuryData = luxuryData || {};
       update.standardFitments = mapped.standardFitments;
@@ -246,7 +237,6 @@ exports.updateLuxuryEnquiry = async (req, res) => {
       update.extraCostFitments = mapped.extraCostFitments;
       update.customExtras = mapped.customExtras;
     } else {
-      // If arrays are directly provided, accept them
       if (standardFitments !== undefined) update.standardFitments = standardFitments;
       if (optionalFitmentsSelected !== undefined) update.optionalFitmentsSelected = optionalFitmentsSelected;
       if (extraCostFitments !== undefined) update.extraCostFitments = extraCostFitments;
@@ -258,14 +248,10 @@ exports.updateLuxuryEnquiry = async (req, res) => {
       { $set: update },
       { new: true }
     );
+    if (!enquiry) return res.status(404).json({ error: 'Enquiry not found' });
 
-    if (!enquiry) {
-      return res.status(404).json({ error: 'Enquiry not found' });
-    }
-
-    // Re-generate attached PDF
-    const pdfBuffer = await generateEnquiryPdf(enquiry.toObject()); 
-    enquiry.pdfData = pdfBuffer;
+    const excelBuffer = await generateEnquiryExcel(enquiry.toObject());
+    enquiry.excelData = excelBuffer;
     await enquiry.save();
 
     return res.status(200).json({
@@ -278,11 +264,13 @@ exports.updateLuxuryEnquiry = async (req, res) => {
   }
 };
 
+/* ------------------------
+   Save Luxury Details
+------------------------ */
 exports.saveLuxuryDetails = async (req, res) => {
   try {
     const { leadId } = req.params;
     const enquiry = await Enquiry.findOne({ lead: leadId }).sort({ createdAt: -1 });
-
     if (!enquiry) {
       return res.status(404).json({ error: "Enquiry not found for this lead" });
     }
@@ -314,9 +302,8 @@ exports.saveLuxuryDetails = async (req, res) => {
 
     enquiry.modelName = updateModelName;
 
-    const pdfBuffer = await generateEnquiryPdf(enquiry.toObject());
-    enquiry.pdfData = pdfBuffer;
-
+    const excelBuffer = await generateEnquiryExcel(enquiry.toObject());
+    enquiry.excelData = excelBuffer;
     await enquiry.save();
 
     return res.status(200).json({ message: "Luxury details saved ✅", enquiry });

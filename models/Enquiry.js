@@ -1,4 +1,3 @@
-// models/Enquiry.js
 const mongoose = require('mongoose');
 
 /* ---------- Embedded Schemas for Luxury section ---------- */
@@ -124,7 +123,7 @@ const enquirySchema = new mongoose.Schema(
     fitmentProvided: [String],
 
     /* ---------- NEW: Luxury model details ---------- */
-    luxuryData: { type: Object, default: {} }, 
+    luxuryData: { type: Object, default: {} },
     modelName: String, // e.g. "Spider", "Arrow", ...
 
     // Table of standard fitments (each item has key/label/suggested/choice/otherValue)
@@ -140,7 +139,8 @@ const enquirySchema = new mongoose.Schema(
     customExtras: { type: [CustomExtraSchema], default: [] },
 
     /* ---------- Meta ---------- */
-    pdfData: Buffer,
+    pdfData: Buffer,       // legacy PDF export
+    excelData: Buffer,     // ✅ NEW: Excel export
     createdAt: { type: Date, default: Date.now },
 
     lead: { type: mongoose.Schema.Types.ObjectId, ref: 'Lead' },
@@ -151,15 +151,14 @@ const enquirySchema = new mongoose.Schema(
       required: true,
     },
 
-    proposalPdf: { type: Buffer },
+    proposalPdf: Buffer,    // legacy proposal PDF
+    proposalExcel: Buffer,  // ✅ NEW: proposal Excel
   },
   {
-    minimize: false, // keep empty objects if you ever store them
+    minimize: false,
     timestamps: false,
   },
 );
-
-
 
 /* Helpful indexes for your queries */
 enquirySchema.index({ lead: 1, createdAt: -1 });

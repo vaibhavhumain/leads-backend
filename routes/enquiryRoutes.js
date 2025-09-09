@@ -3,17 +3,21 @@ const router = express.Router();
 const { protect } = require('../middleware/authMiddleware');
 const {
   createEnquiry,
-  downloadEnquiryPdf,
-  getAllPdfsByLead,
-  saveLuxuryDetails   // ✅ ADD THIS
+  downloadEnquiryExcel,   // ✅ Excel
+  getAllExcelsByLead,     // ✅ Excel
+  saveLuxuryDetails,
 } = require('../controllers/enquiryController');
 
+// Create new enquiry
 router.post('/', protect, createEnquiry);
 
-router.get('/pdf/:id', protect, downloadEnquiryPdf);
+// Excel download (new)
+router.get('/excel/:id', protect, downloadEnquiryExcel);
 
-router.get('/all-pdfs/:leadId', protect, getAllPdfsByLead);
+// Get all enquiry excels by lead
+router.get('/all-excels/:leadId', protect, getAllExcelsByLead);
 
+// Save luxury details
 router.post('/luxury/:leadId', protect, saveLuxuryDetails);
 
 module.exports = router;
