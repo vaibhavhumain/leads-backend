@@ -42,6 +42,7 @@ const {
   dedupeLeads,
   deleteOwnLeadsBulkAsDeveloper,
   getLeadsByUser,
+  updateBusType,
 } = require('../controllers/leadController');
 
 const { protect, admin } = require('../middleware/authMiddleware');
@@ -90,6 +91,7 @@ router.put('/:id/location', protect, updateLocation);
 router.put('/:id/update-contacts', protect, updateContacts);
 router.put('/:id/primary-contact', protect, updatePrimaryContact);
 router.put('/:id/lifecycle', protect, updateLifecycleStatus);
+router.put('/:id/bus-type', protect, updateBusType); 
 
 // ✅ Deletion
 router.delete('/developer', protect, deleteOwnLeadsBulkAsDeveloper);
@@ -104,8 +106,8 @@ router.get('/leads-edited-with-timers', protect, getEditedLeads);
 router.get('/followUpsByUser', protect, getFollowUpsByUser);
 
 // ✅ Admin/role-based
-router.get('/user/:userId', protect, getLeadsByUser); // leads by a specific user
-router.get('/', protect, getLeads);                   // all leads (role-based)
-router.get('/:id', protect, getLeadById);             // single lead by id
+router.get('/user/:userId', protect, getLeadsByUser); 
+router.get('/', protect, getLeads);                 
+router.get('/:id', protect, getLeadById);           
 
 module.exports = router;

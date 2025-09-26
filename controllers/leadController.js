@@ -26,6 +26,7 @@ exports.createLead = async (req, res) => {
         companyName: leadDetails.companyName || '',
         location: leadDetails.location || '',
         email: leadDetails.email || '',
+            busType: leadDetails.busType || '',
       },
       createdBy: req.user.id,
       status: leadDetails.status || 'Cold',
@@ -319,6 +320,7 @@ exports.bulkCreateLeads = async (req, res) => {
         source: 'Excel Upload',
         clientName: lead.leadDetails?.clientName || 'N/A',
         email: lead.leadDetails?.email || '',
+            busType: leadDetails.busType || '',
       },
       status: lead.status || 'Cold',
       connectionStatus: lead.connectionStatus || 'Not Connected',
@@ -1544,5 +1546,32 @@ exports.getLeadsByUser = async (req, res) => {
   } catch (error) {
     console.error("Error fetching leads by user:", error);
     res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+exports.updateBusType = async (req, res) => {
+  const { id } = req.params;
+  const { busType } = req.body;
+
+  if (!busType || !busType.trim()) {
+    return res.status(400).json({ message: 'Bus type is required' });
+  }
+
+  try {
+    const lead = await Lead.findById(id);
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+
+    lead.leadDetails.busType = busType.trim();
+    lead.editHistory.push({
+      editedAt: new Date(),
+      editedBy: req.user._id
+    });
+
+    await lead.save();
+
+    res.status(200).json({ message: 'Bus type updated', lead });
+  } catch (err) {
+    console.error('Error updating bus type:', err);
+    res.status(500).json({ message: 'Failed to update bus type' });
   }
 };

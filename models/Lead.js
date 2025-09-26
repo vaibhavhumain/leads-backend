@@ -35,9 +35,9 @@ const leadSchema = new mongoose.Schema(
           }
         ],
         default: [] // ✅ safer than undefined
-      }
+      },
+      busType: { type:String, default: '' },
     },
-
     isFrozen: { type: Boolean, default: false },
 
     status: {
