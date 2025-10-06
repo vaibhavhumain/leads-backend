@@ -17,26 +17,24 @@ function buildBaseEnquiryId(userName) {
   return `GC-${initials}-${yyyy}${mm}${dd}`;
 }
 
-async function nextSequencedIdForLead(baseId, leadObjectId) {
-  const regex = new RegExp(`^${baseId}(?:-(\\d{2}))?$`);
-  const existing = await Enquiry
-    .find({ lead: leadObjectId, enquiryId: { $regex: regex } }, { enquiryId: 1 })
-    .lean();
+async function nextSequencedIdGlobal(baseId) {
+  const regex = new RegExp(`^${baseId}(-\\d{2})?$`);
+  const existing = await Enquiry.find({ enquiryId: { $regex: regex } }, { enquiryId: 1 }).lean();
 
   let maxSuffix = 0;
   let hasExactBase = false;
 
   for (const { enquiryId } of existing) {
     if (enquiryId === baseId) { hasExactBase = true; continue; }
-    const m = enquiryId.match(/-(\d{2})$/);
-    if (m) {
-      const num = parseInt(m[1], 10);
+    const match = enquiryId.match(/-(\d{2})$/);
+    if (match) {
+      const num = parseInt(match[1], 10);
       if (!Number.isNaN(num) && num > maxSuffix) maxSuffix = num;
     }
   }
+
   const next = maxSuffix > 0 ? maxSuffix + 1 : (hasExactBase ? 2 : 1);
-  const pad2 = String(next).padStart(2, '0');
-  return `${baseId}-${pad2}`;
+  return `${baseId}-${String(next).padStart(2, '0')}`;
 }
 
 function sanitizePayload(data) {
@@ -98,7 +96,7 @@ exports.createEnquiry = async (req, res) => {
 
     let enquiry;
     for (let attempt = 0; attempt < 3; attempt++) {
-      const enquiryId = await nextSequencedIdForLead(baseId, lead._id);
+      const enquiryId = await nextSequencedIdGlobal(baseId);
       try {
         enquiry = await Enquiry.create({
           ...clean,
